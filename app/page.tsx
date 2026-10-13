@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { 
   Play, 
@@ -18,10 +18,7 @@ import {
   X,
   Pencil,
   ChevronDown,
-  ChevronUp,
-  Cpu,
-  Target,
-  Clock
+  Download
 } from 'lucide-react';
 
 const ALLOWED_BROKERS = [
@@ -38,11 +35,37 @@ export default function MobileConsole() {
   const [activeTab, setActiveTab] = useState<'home' | 'signals' | 'scanner' | 'settings'>('home');
   const [modalOpen, setModalOpen] = useState<'connect' | 'scanner' | 'signals' | 'status' | 'add_robot' | null>(null);
   
-  // Floating Widget State
+  // Floating Widget State (Pure circular icon)
   const [widgetExpanded, setWidgetExpanded] = useState(false);
-  const [widgetDismissed, setWidgetDismissed] = useState(false);
 
-  // Broker State (Strictly limited to the 4 allowed brokers)
+  // Install PWA prompt state
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setCanInstall(false);
+      }
+      setDeferredPrompt(null);
+    } else {
+      alert("To install: Tap the 3 dots (⋮) in Chrome and select 'Add to Home screen' or 'Install app'.");
+    }
+  };
+
+  // Broker State
   const [selectedBroker, setSelectedBroker] = useState(ALLOWED_BROKERS[0].name);
   const [mt5Login, setMt5Login] = useState('');
   const [mt5Server, setMt5Server] = useState(ALLOWED_BROKERS[0].servers[0]);
@@ -55,10 +78,9 @@ export default function MobileConsole() {
     <div className="min-h-screen bg-[#030811] text-slate-100 flex justify-center pb-28 font-sans select-none relative overflow-x-hidden">
       <main className="w-full max-w-md px-4 pt-3 flex flex-col gap-3.5">
         
-        {/* --- 1. HERO ROBOT CARD (Matching Screenshot) --- */}
+        {/* --- 1. HERO ROBOT CARD --- */}
         <div className="relative w-full rounded-[28px] border-2 border-cyan-500/50 bg-[#06121f] p-4 shadow-[0_0_35px_rgba(6,182,212,0.25)] overflow-hidden flex flex-col justify-between min-h-[460px]">
           
-          {/* Background Robot Artwork */}
           <div className="absolute inset-0 z-0">
             <Image 
               src="/images/bluescalp-bot.jpg" 
@@ -70,7 +92,6 @@ export default function MobileConsole() {
             <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#06121f] via-60%" />
           </div>
 
-          {/* Top Row: BOT ACTIVE & Edit/Pencil Icon */}
           <div className="relative z-10 flex items-center justify-between">
             <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wider backdrop-blur-md border uppercase transition ${
               isActive 
@@ -89,10 +110,7 @@ export default function MobileConsole() {
             </button>
           </div>
 
-          {/* Bottom Card Content: Title, Mentor, Badges, Metrics */}
           <div className="relative z-10 flex flex-col gap-2.5 mt-auto pt-8">
-            
-            {/* Title & Brand */}
             <div>
               <h1 className="text-3xl font-black tracking-tight text-cyan-300 drop-shadow-[0_2px_14px_rgba(6,182,212,0.8)]">
                 BLUESCALP ASSASSIN V1.0
@@ -102,7 +120,6 @@ export default function MobileConsole() {
               </p>
             </div>
 
-            {/* Sub Badges: LIVE + POWERED BY PROEDGE EA */}
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-[11px] font-bold text-cyan-300">
                 <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
@@ -114,7 +131,6 @@ export default function MobileConsole() {
               </div>
             </div>
 
-            {/* Bottom Inner Deck (The Icon / 8 pairs / 2 live) */}
             <div className="flex items-center justify-between rounded-xl bg-cyan-950/40 border border-cyan-500/30 px-3.5 py-2 text-xs backdrop-blur-md mt-1">
               <span className="text-slate-200 font-semibold">The Assassin</span>
               <span className="text-slate-300 font-medium">8 pairs</span>
@@ -123,16 +139,12 @@ export default function MobileConsole() {
                 {brokerConnected ? 'Connected' : '2 live'}
               </span>
             </div>
-
           </div>
         </div>
 
         {/* --- 2. MAIN ENGINE TOGGLE BUTTON --- */}
         <button
-          onClick={() => {
-            setIsActive(!isActive);
-            if (!isActive) setWidgetDismissed(false);
-          }}
+          onClick={() => setIsActive(!isActive)}
           className={`w-full py-4 rounded-2xl border-2 font-black tracking-widest text-sm uppercase flex items-center justify-center gap-2.5 transition active:scale-[0.98] ${
             isActive 
               ? 'bg-[#061424] border-cyan-400 text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.3)]' 
@@ -154,7 +166,6 @@ export default function MobileConsole() {
 
         {/* --- 3. FOUR CIRCULAR QUICK ACTION BUTTONS --- */}
         <div className="w-full bg-[#081525] border border-cyan-500/20 rounded-2xl py-3.5 px-4 flex items-center justify-between shadow-lg">
-          {/* 1: Connect */}
           <button 
             onClick={() => setModalOpen('connect')}
             className="flex flex-col items-center gap-1.5 group"
@@ -165,7 +176,6 @@ export default function MobileConsole() {
             <span className="text-[11px] font-medium text-slate-300">Connect</span>
           </button>
 
-          {/* 2: Chart Scan */}
           <button 
             onClick={() => setModalOpen('scanner')}
             className="flex flex-col items-center gap-1.5 group"
@@ -176,7 +186,6 @@ export default function MobileConsole() {
             <span className="text-[11px] font-medium text-slate-300">Chart Scan</span>
           </button>
 
-          {/* 3: Signals */}
           <button 
             onClick={() => setModalOpen('signals')}
             className="flex flex-col items-center gap-1.5 group"
@@ -187,7 +196,6 @@ export default function MobileConsole() {
             <span className="text-[11px] font-medium text-slate-300">Signals</span>
           </button>
 
-          {/* 4: Status */}
           <button 
             onClick={() => setModalOpen('status')}
             className="flex flex-col items-center gap-1.5 group"
@@ -211,7 +219,6 @@ export default function MobileConsole() {
           </button>
         </div>
 
-        {/* Active Robot Preview Tile */}
         <div className="w-full bg-[#081525] border border-cyan-500/20 rounded-2xl p-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative w-12 h-12 rounded-xl border border-cyan-500/40 overflow-hidden bg-slate-900">
@@ -234,99 +241,55 @@ export default function MobileConsole() {
 
       </main>
 
-      {/* --- 5. FLOATING LIVE BOT MONITOR WIDGET --- */}
-      {isActive && !widgetDismissed && (
-        <aside aria-label="Live bot monitor" className="fixed bottom-20 right-4 z-40 max-w-[340px] flex flex-col items-end animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* --- 5. CLEAN CIRCULAR FLOATING BOT ICON --- */}
+      {isActive && (
+        <aside aria-label="Live bot floating status" className="fixed bottom-20 right-4 z-40 flex flex-col items-end">
           
-          {/* Expanded Monitor Card */}
+          {/* Expanded Radar HUD when tapped */}
           {widgetExpanded && (
-            <div className="w-80 mb-2 rounded-2xl border-2 border-cyan-400/70 bg-[#071322]/95 backdrop-blur-xl p-3.5 shadow-[0_0_35px_rgba(6,182,212,0.4)] text-xs flex flex-col gap-2.5 animate-in zoom-in-95 duration-200">
-              
+            <div className="w-76 mb-2 rounded-2xl border-2 border-cyan-400/80 bg-[#071322]/95 backdrop-blur-xl p-3.5 shadow-[0_0_35px_rgba(6,182,212,0.45)] text-xs flex flex-col gap-2.5 animate-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between pb-1.5 border-b border-cyan-500/30">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span className="font-black text-cyan-300 tracking-wide text-xs">PROEDGE SIGNAL RADAR</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="font-black text-cyan-300 tracking-wider text-[11px]">PROEDGE SIGNAL RADAR</span>
                 </div>
-                <button 
-                  onClick={() => setWidgetExpanded(false)}
-                  className="text-slate-400 hover:text-white"
-                >
+                <button onClick={() => setWidgetExpanded(false)} className="text-slate-400 hover:text-white">
                   <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Live Signal Feed Details */}
-              <div className="bg-[#040a12] border border-cyan-500/30 rounded-xl p-2.5 space-y-1.5">
+              <div className="bg-[#040a12] border border-cyan-500/30 rounded-xl p-2.5 space-y-1">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-emerald-400">XAUUSD • BUY SIGNAL</span>
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">BURST #1-3</span>
+                  <span className="font-bold text-emerald-400">XAUUSD • BUY BURST</span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">ACTIVE</span>
                 </div>
-                <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-300">
+                <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-300 pt-1">
                   <p><strong>SL:</strong> 30 pts (ATR)</p>
                   <p><strong>TP:</strong> +45 pts</p>
-                  <p><strong>Break-Even:</strong> +15 pts</p>
+                  <p><strong>Bullets:</strong> 3 Fired</p>
                   <p><strong>R:R:</strong> 1:2.4</p>
                 </div>
-                <p className="text-[10px] text-cyan-400 font-medium pt-1 border-t border-slate-800">
-                  ✓ H1 Sweep + M1 MSS Confirmed
-                </p>
               </div>
-
-              {/* Engine Metrics */}
-              <div className="grid grid-cols-3 gap-1.5 text-center text-[10px]">
-                <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
-                  <span className="text-slate-400 block">Latency</span>
-                  <span className="font-bold text-emerald-400">12ms</span>
-                </div>
-                <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
-                  <span className="text-slate-400 block">Session</span>
-                  <span className="font-bold text-cyan-300">London</span>
-                </div>
-                <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
-                  <span className="text-slate-400 block">Peak Stop</span>
-                  <span className="font-bold text-amber-300">-40%</span>
-                </div>
-              </div>
-
             </div>
           )}
 
-          {/* Floating Pill Trigger */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setWidgetExpanded(!widgetExpanded)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#081729]/95 border-2 border-cyan-400 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.45)] backdrop-blur-md active:scale-95 transition"
-            >
-              <div className="relative w-6 h-6 rounded-full overflow-hidden border border-cyan-400 shrink-0">
-                <Image 
-                  src="/images/bluescalp-bot.jpg" 
-                  alt="Floating Bot" 
-                  fill 
-                  className="object-cover" 
-                />
-              </div>
-              <div className="flex flex-col text-left">
-                <span className="text-[10px] font-black tracking-wider flex items-center gap-1 text-white leading-tight">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  MONITORING
-                </span>
-                <span className="text-[9px] text-cyan-300 font-mono leading-tight">XAUUSD • SCANNING</span>
-              </div>
-              {widgetExpanded ? (
-                <ChevronDown className="w-3.5 h-3.5 text-cyan-400 ml-1" />
-              ) : (
-                <ChevronUp className="w-3.5 h-3.5 text-cyan-400 ml-1" />
-              )}
-            </button>
-
-            {/* Quick Dismiss Button */}
-            <button
-              onClick={() => setWidgetDismissed(true)}
-              className="w-6 h-6 rounded-full bg-slate-900/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
+          {/* PURE CIRCULAR BOT ICON (No extra labels) */}
+          <button
+            onClick={() => setWidgetExpanded(!widgetExpanded)}
+            className="relative w-14 h-14 rounded-full border-2 border-cyan-400 bg-slate-900 shadow-[0_0_22px_rgba(6,182,212,0.6)] flex items-center justify-center p-0.5 active:scale-90 transition transform"
+            title="Bot Active"
+          >
+            <div className="relative w-full h-full rounded-full overflow-hidden">
+              <Image 
+                src="/images/bluescalp-bot.jpg" 
+                alt="Bot Icon" 
+                fill 
+                className="object-cover" 
+              />
+            </div>
+            {/* Small Pulsing Live Dot */}
+            <span className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#030811] animate-pulse" />
+          </button>
 
         </aside>
       )}
@@ -366,20 +329,29 @@ export default function MobileConsole() {
         </button>
       </nav>
 
-      {/* --- MODAL: BROKER CONNECT (RCG, HFM, FXPRO, JUSTMARKETS) --- */}
+      {/* --- MODAL: BROKER CONNECT + ONE-TAP INSTALL BUTTON --- */}
       {modalOpen === 'connect' && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)] max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div>
-                <h3 className="text-lg font-bold text-cyan-300">Broker Bridge</h3>
-                <p className="text-xs text-slate-400">Allowed: RCG, HFM, FxPro & JustMarkets</p>
+                <h3 className="text-lg font-bold text-cyan-300">Broker & App Setup</h3>
+                <p className="text-xs text-slate-400">Certified for RCG, HFM, FxPro & JustMarkets</p>
               </div>
               <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* DIRECT DOWNLOAD / INSTALL BUTTON */}
+            <button
+              onClick={handleInstallClick}
+              className="w-full py-3 rounded-xl bg-cyan-950/80 border border-cyan-400 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-cyan-900/60 active:scale-95 transition shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+            >
+              <Download className="w-4 h-4 text-cyan-400" />
+              Install / Download App to Phone Home Screen
+            </button>
 
             <div className="bg-cyan-950/60 border border-cyan-500/40 rounded-xl p-3 text-xs text-cyan-200 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />

@@ -18,11 +18,11 @@ import {
   X,
   Pencil,
   ChevronDown,
-  Download,
   Lock,
   KeyRound,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 
 const ALLOWED_BROKERS = [
@@ -32,11 +32,10 @@ const ALLOWED_BROKERS = [
   { id: 'justmarkets', name: 'JustMarkets', servers: ['JustMarkets-Live', 'JustMarkets-Live2'] },
 ];
 
-const SUPPORTED_PAIRS = ['XAUUSD', 'USDJPY', 'NAS100', 'US30', 'GER40', 'EURUSD', 'BTCUSD', 'XAGUSD'];
-
 export default function MobileConsole() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [licenseInput, setLicenseInput] = useState('');
+  const [activeKey, setActiveKey] = useState('');
   const [clientInfo, setClientInfo] = useState<{ clientName: string; expiresAt: string } | null>(null);
   const [authError, setAuthError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -52,15 +51,46 @@ export default function MobileConsole() {
   const [mt5Server, setMt5Server] = useState(ALLOWED_BROKERS[0].servers[0]);
   const [brokerConnected, setBrokerConnected] = useState(false);
 
+  // Live signals state
+  const [signals, setSignals] = useState<any[]>([]);
+  const [loadingSignals, setLoadingSignals] = useState(false);
+  const [latestSignal, setLatestSignal] = useState<any>(null);
+
   const [scannerStatus, setScannerStatus] = useState<'idle' | 'scanning' | 'detected'>('idle');
 
-  // Verify stored key with database on startup
+  // Verify stored key on start
   useEffect(() => {
     const savedKey = localStorage.getItem('bluescalp_license_key');
     if (savedKey) {
       verifyKeyWithDatabase(savedKey, true);
     }
   }, []);
+
+  // Poll for live signals every 10 seconds if active & unlocked
+  useEffect(() => {
+    if (!isUnlocked || !activeKey) return;
+    fetchSignals();
+    const interval = setInterval(fetchSignals, 10000);
+    return () => clearInterval(interval);
+  }, [isUnlocked, activeKey]);
+
+  const fetchSignals = async () => {
+    if (!activeKey) return;
+    try {
+      const res = await fetch('/api/mt5/signals', {
+        headers: { 'x-license-key': activeKey }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setSignals(data);
+          if (data.length > 0) setLatestSignal(data[0]);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching signals:', e);
+    }
+  };
 
   const verifyKeyWithDatabase = async (keyToTest: string, isSilent = false) => {
     if (!isSilent) {
@@ -78,11 +108,14 @@ export default function MobileConsole() {
       const data = await res.json();
 
       if (res.ok && data.valid) {
-        localStorage.setItem('bluescalp_license_key', keyToTest.trim().toUpperCase());
+        const cleanKey = keyToTest.trim().toUpperCase();
+        localStorage.setItem('bluescalp_license_key', cleanKey);
+        setActiveKey(cleanKey);
         setClientInfo({ clientName: data.clientName, expiresAt: data.expiresAt });
         setIsUnlocked(true);
       } else {
         localStorage.removeItem('bluescalp_license_key');
+        setActiveKey('');
         setIsUnlocked(false);
         if (!isSilent) {
           setAuthError(data.message || 'Invalid or expired license key.');
@@ -103,11 +136,11 @@ export default function MobileConsole() {
   const handleLockOut = () => {
     localStorage.removeItem('bluescalp_license_key');
     setIsUnlocked(false);
+    setActiveKey('');
     setLicenseInput('');
     setClientInfo(null);
   };
 
-  // --- LOCKED TERMINAL VIEW ---
   if (!isUnlocked) {
     return (
       <div className="min-h-screen bg-[#030811] text-slate-100 flex items-center justify-center p-4 font-sans select-none">
@@ -193,7 +226,6 @@ export default function MobileConsole() {
     );
   }
 
-  // --- UNLOCKED FULL APP ---
   return (
     <div className="min-h-screen bg-[#030811] text-slate-100 flex justify-center pb-28 font-sans select-none relative overflow-x-hidden">
       <main className="w-full max-w-md px-4 pt-3 flex flex-col gap-3.5">
@@ -255,7 +287,7 @@ export default function MobileConsole() {
               <span className="text-slate-300 font-medium">8 pairs</span>
               <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 font-bold text-[11px]">
                 <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
-                {brokerConnected ? 'Connected' : '2 live'}
+                {signals.length > 0 ? `${signals.length} Signals` : (brokerConnected ? 'Connected' : 'Listening')}
               </span>
             </div>
           </div>
@@ -363,18 +395,28 @@ export default function MobileConsole() {
                 </button>
               </div>
 
-              <div className="bg-[#040a12] border border-cyan-500/30 rounded-xl p-2.5 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-emerald-400">XAUUSD • BUY BURST</span>
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">ACTIVE</span>
+              {latestSignal ? (
+                <div className="bg-[#040a12] border border-cyan-500/30 rounded-xl p-2.5 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className={`font-bold ${latestSignal.action === 'BUY' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {latestSignal.symbol} • {latestSignal.action} BURST
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-[10px] font-bold">
+                      {latestSignal.status || 'ACTIVE'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-300 pt-1">
+                    <p><strong>Entry:</strong> {latestSignal.entry_price || 'Market'}</p>
+                    <p><strong>Bullets:</strong> {latestSignal.bullets || 3} Fired</p>
+                    <p><strong>SL:</strong> {latestSignal.sl_price || 'ATR Stop'}</p>
+                    <p><strong>TP:</strong> {latestSignal.tp_price || '+45 pts'}</p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-300 pt-1">
-                  <p><strong>SL:</strong> 30 pts (ATR)</p>
-                  <p><strong>TP:</strong> +45 pts</p>
-                  <p><strong>Bullets:</strong> 3 Fired</p>
-                  <p><strong>R:R:</strong> 1:2.4</p>
+              ) : (
+                <div className="bg-[#040a12] border border-slate-800 rounded-xl p-3 text-center text-[11px] text-slate-400">
+                  Scanning London & NY Sessions... No live burst active.
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -417,6 +459,52 @@ export default function MobileConsole() {
           <span className="text-[10px] font-bold">Settings</span>
         </button>
       </nav>
+
+      {/* LIVE SIGNALS MODAL */}
+      {modalOpen === 'signals' && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)] max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-cyan-300">Live Signals Feed</h3>
+                <button onClick={fetchSignals} className="text-cyan-400 hover:text-white p-1">
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {signals.length === 0 ? (
+                <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
+                  No signals broadcast yet. Broadcaster will stream when London or NY conditions align.
+                </div>
+              ) : (
+                signals.map((sig) => (
+                  <div key={sig.id} className="p-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex justify-between items-center text-xs">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold ${sig.action === 'BUY' ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {sig.action} {sig.symbol}
+                        </span>
+                        <span className="text-[10px] text-slate-400">{sig.session || 'London/NY'}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-300 mt-1">
+                        Entry: {sig.entry_price || 'Market'} | SL: {sig.sl_price || 'ATR'} | TP: {sig.tp_price || '+45pts'}
+                      </p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-500/40 text-cyan-300 font-mono text-[10px] font-bold">
+                      {sig.status || 'FIRED'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BROKER & LICENSE MODAL */}
       {modalOpen === 'connect' && (
@@ -521,29 +609,6 @@ export default function MobileConsole() {
                 <p className="text-slate-300">H1 Sweep Confirmed • Bullish MSS on M1 • FVG Retest</p>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* SIGNALS MODAL */}
-      {modalOpen === 'signals' && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)] max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-cyan-300">Live Signals Feed</h3>
-              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-2">
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/30 flex justify-between items-center">
-                <div>
-                  <span className="text-xs font-bold text-emerald-400">BUY XAUUSD (Gold)</span>
-                  <p className="text-[10px] text-slate-400">TP: +45 pts | SL: 30 pts | 3 Bullets</p>
-                </div>
-                <span className="text-xs font-mono text-cyan-300">EXECUTED</span>
-              </div>
-            </div>
           </div>
         </div>
       )}

@@ -18,7 +18,11 @@ import {
   X,
   Pencil,
   ChevronDown,
-  Download
+  Download,
+  Lock,
+  KeyRound,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
 const ALLOWED_BROKERS = [
@@ -31,39 +35,19 @@ const ALLOWED_BROKERS = [
 const SUPPORTED_PAIRS = ['XAUUSD', 'USDJPY', 'NAS100', 'US30', 'GER40', 'EURUSD', 'BTCUSD', 'XAGUSD'];
 
 export default function MobileConsole() {
+  // License Auth Gate State
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [licenseInput, setLicenseInput] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Bot State
   const [isActive, setIsActive] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'signals' | 'scanner' | 'settings'>('home');
   const [modalOpen, setModalOpen] = useState<'connect' | 'scanner' | 'signals' | 'status' | 'add_robot' | null>(null);
   
-  // Floating Widget State (Pure circular icon)
+  // Floating Widget State
   const [widgetExpanded, setWidgetExpanded] = useState(false);
-
-  // Install PWA prompt state
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [canInstall, setCanInstall] = useState(false);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setCanInstall(true);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setCanInstall(false);
-      }
-      setDeferredPrompt(null);
-    } else {
-      alert("To install: Tap the 3 dots (⋮) in Chrome and select 'Add to Home screen' or 'Install app'.");
-    }
-  };
 
   // Broker State
   const [selectedBroker, setSelectedBroker] = useState(ALLOWED_BROKERS[0].name);
@@ -74,13 +58,135 @@ export default function MobileConsole() {
   // Scanner state
   const [scannerStatus, setScannerStatus] = useState<'idle' | 'scanning' | 'detected'>('idle');
 
+  // Check saved license on startup
+  useEffect(() => {
+    const savedKey = localStorage.getItem('bluescalp_license_key');
+    if (savedKey) {
+      setIsUnlocked(true);
+      setLicenseInput(savedKey);
+    }
+  }, []);
+
+  const handleUnlock = () => {
+    setAuthError('');
+    setIsVerifying(true);
+
+    setTimeout(() => {
+      const key = licenseInput.trim().toUpperCase();
+      // Validates master key or any standard BSA- format license
+      if (key === 'BSA-MASTER-TMAN-2026' || (key.startsWith('BSA-') && key.length >= 10)) {
+        localStorage.setItem('bluescalp_license_key', key);
+        setIsUnlocked(true);
+      } else {
+        setAuthError('Invalid or expired license key. Please check your key or contact mentor.');
+      }
+      setIsVerifying(false);
+    }, 600);
+  };
+
+  const handleLockOut = () => {
+    localStorage.removeItem('bluescalp_license_key');
+    setIsUnlocked(false);
+    setLicenseInput('');
+  };
+
+  // --- 1. GATEWAY SCREEN (IF LOCKED) ---
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-[#030811] text-slate-100 flex items-center justify-center p-4 font-sans select-none">
+        <div className="w-full max-w-sm rounded-3xl border-2 border-cyan-500/40 bg-[#06121f] p-6 shadow-[0_0_40px_rgba(6,182,212,0.3)] flex flex-col items-center gap-5 relative overflow-hidden">
+          
+          {/* Subtle Robot Glow in Background */}
+          <div className="absolute inset-0 opacity-20 pointer-events-none">
+            <Image 
+              src="/images/bluescalp-bot.jpg" 
+              alt="BlueScalp Robot" 
+              fill 
+              className="object-cover object-top"
+            />
+          </div>
+
+          {/* Glowing Lock Badge */}
+          <div className="relative z-10 w-16 h-16 rounded-full bg-cyan-950/80 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)]">
+            <Lock className="w-7 h-7 text-cyan-300" />
+          </div>
+
+          <div className="relative z-10 text-center">
+            <h1 className="text-2xl font-black text-cyan-300 tracking-tight">
+              BLUESCALP ASSASSIN
+            </h1>
+            <p className="text-xs font-semibold text-cyan-400/80 mt-0.5">
+              by Tman Capitals • Protected Terminal
+            </p>
+          </div>
+
+          {/* Activation Form */}
+          <div className="relative z-10 w-full flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
+                Enter Access License Key
+              </label>
+              <input 
+                type="text" 
+                placeholder="BSA-PRO-XXXX-XXXX"
+                value={licenseInput}
+                onChange={(e) => setLicenseInput(e.target.value.toUpperCase())}
+                className="w-full bg-slate-900/90 border border-cyan-500/40 rounded-xl p-3.5 text-sm font-mono text-cyan-200 placeholder-slate-500 focus:outline-none focus:border-cyan-300 shadow-inner tracking-wider"
+              />
+            </div>
+
+            {authError && (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-950/60 border border-red-500/40 text-[11px] text-red-300">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            <button
+              onClick={handleUnlock}
+              disabled={isVerifying || !licenseInput.trim()}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95 disabled:opacity-50 transition"
+            >
+              {isVerifying ? 'Verifying Key...' : 'Activate Terminal'}
+            </button>
+          </div>
+
+          {/* Purchase Pricing & Capitec EFT Box */}
+          <div className="relative z-10 w-full pt-4 border-t border-slate-800 flex flex-col gap-2.5 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-300">Need a License?</span>
+              <span className="text-cyan-400 font-bold">R200 (3 Mos) / R600 Life</span>
+            </div>
+            
+            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-slate-300 space-y-1 text-[11px]">
+              <p><strong>Bank:</strong> Capitec Bank</p>
+              <p><strong>Account Holder:</strong> T SEAKE</p>
+              <p><strong>Account Number:</strong> 2201301286</p>
+            </div>
+
+            <a 
+              href="https://wa.me/27649291083?text=Hi%20Thabang,%20I%20want%20to%20buy%20a%20license%20key%20for%20BlueScalp%20Assassin" 
+              target="_blank" 
+              rel="noreferrer"
+              className="w-full py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-500/30 transition text-center"
+            >
+              Request Key on WhatsApp (+27 64 929 1083)
+            </a>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // --- 2. MAIN BOT CONSOLE (UNLOCKED) ---
   return (
     <div className="min-h-screen bg-[#030811] text-slate-100 flex justify-center pb-28 font-sans select-none relative overflow-x-hidden">
       <main className="w-full max-w-md px-4 pt-3 flex flex-col gap-3.5">
         
-        {/* --- 1. HERO ROBOT CARD --- */}
+        {/* TOP HERO ROBOT CARD */}
         <div className="relative w-full rounded-[28px] border-2 border-cyan-500/50 bg-[#06121f] p-4 shadow-[0_0_35px_rgba(6,182,212,0.25)] overflow-hidden flex flex-col justify-between min-h-[460px]">
-          
           <div className="absolute inset-0 z-0">
             <Image 
               src="/images/bluescalp-bot.jpg" 
@@ -142,7 +248,7 @@ export default function MobileConsole() {
           </div>
         </div>
 
-        {/* --- 2. MAIN ENGINE TOGGLE BUTTON --- */}
+        {/* MAIN ENGINE BUTTON */}
         <button
           onClick={() => setIsActive(!isActive)}
           className={`w-full py-4 rounded-2xl border-2 font-black tracking-widest text-sm uppercase flex items-center justify-center gap-2.5 transition active:scale-[0.98] ${
@@ -164,42 +270,30 @@ export default function MobileConsole() {
           )}
         </button>
 
-        {/* --- 3. FOUR CIRCULAR QUICK ACTION BUTTONS --- */}
+        {/* 4 CIRCULAR ACTIONS */}
         <div className="w-full bg-[#081525] border border-cyan-500/20 rounded-2xl py-3.5 px-4 flex items-center justify-between shadow-lg">
-          <button 
-            onClick={() => setModalOpen('connect')}
-            className="flex flex-col items-center gap-1.5 group"
-          >
+          <button onClick={() => setModalOpen('connect')} className="flex flex-col items-center gap-1.5 group">
             <div className="w-13 h-13 rounded-full bg-cyan-950/60 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-active:scale-95 transition">
               <DollarSign className="w-5 h-5 text-cyan-300" />
             </div>
             <span className="text-[11px] font-medium text-slate-300">Connect</span>
           </button>
 
-          <button 
-            onClick={() => setModalOpen('scanner')}
-            className="flex flex-col items-center gap-1.5 group"
-          >
+          <button onClick={() => setModalOpen('scanner')} className="flex flex-col items-center gap-1.5 group">
             <div className="w-13 h-13 rounded-full bg-cyan-950/60 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-active:scale-95 transition">
               <TrendingUp className="w-5 h-5 text-cyan-300" />
             </div>
             <span className="text-[11px] font-medium text-slate-300">Chart Scan</span>
           </button>
 
-          <button 
-            onClick={() => setModalOpen('signals')}
-            className="flex flex-col items-center gap-1.5 group"
-          >
+          <button onClick={() => setModalOpen('signals')} className="flex flex-col items-center gap-1.5 group">
             <div className="w-13 h-13 rounded-full bg-cyan-950/60 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-active:scale-95 transition">
               <Radio className="w-5 h-5 text-cyan-300" />
             </div>
             <span className="text-[11px] font-medium text-slate-300">Signals</span>
           </button>
 
-          <button 
-            onClick={() => setModalOpen('status')}
-            className="flex flex-col items-center gap-1.5 group"
-          >
+          <button onClick={() => setModalOpen('status')} className="flex flex-col items-center gap-1.5 group">
             <div className="w-13 h-13 rounded-full bg-cyan-950/60 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-active:scale-95 transition">
               <Activity className="w-5 h-5 text-cyan-300" />
             </div>
@@ -207,7 +301,7 @@ export default function MobileConsole() {
           </button>
         </div>
 
-        {/* --- 4. MY ROBOTS SECTION --- */}
+        {/* MY ROBOTS SECTION */}
         <div className="flex items-center justify-between pt-1">
           <h2 className="text-base font-bold text-white tracking-wide">My Robots</h2>
           <button 
@@ -241,13 +335,11 @@ export default function MobileConsole() {
 
       </main>
 
-      {/* --- 5. CLEAN CIRCULAR FLOATING BOT ICON --- */}
+      {/* CIRCULAR FLOATING ICON */}
       {isActive && (
         <aside aria-label="Live bot floating status" className="fixed bottom-20 right-4 z-40 flex flex-col items-end">
-          
-          {/* Expanded Radar HUD when tapped */}
           {widgetExpanded && (
-            <div className="w-76 mb-2 rounded-2xl border-2 border-cyan-400/80 bg-[#071322]/95 backdrop-blur-xl p-3.5 shadow-[0_0_35px_rgba(6,182,212,0.45)] text-xs flex flex-col gap-2.5 animate-in zoom-in-95 duration-150">
+            <div className="w-76 mb-2 rounded-2xl border-2 border-cyan-400/80 bg-[#071322]/95 backdrop-blur-xl p-3.5 shadow-[0_0_35px_rgba(6,182,212,0.45)] text-xs flex flex-col gap-2.5">
               <div className="flex items-center justify-between pb-1.5 border-b border-cyan-500/30">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -273,11 +365,9 @@ export default function MobileConsole() {
             </div>
           )}
 
-          {/* PURE CIRCULAR BOT ICON (No extra labels) */}
           <button
             onClick={() => setWidgetExpanded(!widgetExpanded)}
             className="relative w-14 h-14 rounded-full border-2 border-cyan-400 bg-slate-900 shadow-[0_0_22px_rgba(6,182,212,0.6)] flex items-center justify-center p-0.5 active:scale-90 transition transform"
-            title="Bot Active"
           >
             <div className="relative w-full h-full rounded-full overflow-hidden">
               <Image 
@@ -287,75 +377,57 @@ export default function MobileConsole() {
                 className="object-cover" 
               />
             </div>
-            {/* Small Pulsing Live Dot */}
             <span className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#030811] animate-pulse" />
           </button>
-
         </aside>
       )}
 
-      {/* --- 6. BOTTOM NAVIGATION BAR --- */}
+      {/* BOTTOM NAV */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#050e1a]/95 backdrop-blur-xl border-t border-cyan-500/20 py-2.5 px-6 flex justify-between items-center z-40">
-        <button 
-          onClick={() => setActiveTab('home')}
-          className={`flex flex-col items-center gap-1 transition ${activeTab === 'home' ? 'text-cyan-300' : 'text-slate-400'}`}
-        >
+        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition ${activeTab === 'home' ? 'text-cyan-300' : 'text-slate-400'}`}>
           <Home className="w-5 h-5" />
           <span className="text-[10px] font-bold">Home</span>
         </button>
 
-        <button 
-          onClick={() => { setActiveTab('signals'); setModalOpen('signals'); }}
-          className={`flex flex-col items-center gap-1 transition ${activeTab === 'signals' ? 'text-cyan-300' : 'text-slate-400'}`}
-        >
+        <button onClick={() => { setActiveTab('signals'); setModalOpen('signals'); }} className={`flex flex-col items-center gap-1 transition ${activeTab === 'signals' ? 'text-cyan-300' : 'text-slate-400'}`}>
           <Radio className="w-5 h-5" />
           <span className="text-[10px] font-bold">Signals</span>
         </button>
 
-        <button 
-          onClick={() => { setActiveTab('scanner'); setModalOpen('scanner'); }}
-          className={`flex flex-col items-center gap-1 transition ${activeTab === 'scanner' ? 'text-cyan-300' : 'text-slate-400'}`}
-        >
+        <button onClick={() => { setActiveTab('scanner'); setModalOpen('scanner'); }} className={`flex flex-col items-center gap-1 transition ${activeTab === 'scanner' ? 'text-cyan-300' : 'text-slate-400'}`}>
           <TrendingUp className="w-5 h-5" />
           <span className="text-[10px] font-bold">Scanner</span>
         </button>
 
-        <button 
-          onClick={() => { setActiveTab('settings'); setModalOpen('connect'); }}
-          className={`flex flex-col items-center gap-1 transition ${activeTab === 'settings' ? 'text-cyan-300' : 'text-slate-400'}`}
-        >
+        <button onClick={() => { setActiveTab('settings'); setModalOpen('connect'); }} className={`flex flex-col items-center gap-1 transition ${activeTab === 'settings' ? 'text-cyan-300' : 'text-slate-400'}`}>
           <Sliders className="w-5 h-5" />
           <span className="text-[10px] font-bold">Settings</span>
         </button>
       </nav>
 
-      {/* --- MODAL: BROKER CONNECT + ONE-TAP INSTALL BUTTON --- */}
+      {/* BROKER & LICENSE MODAL */}
       {modalOpen === 'connect' && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)] max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div>
-                <h3 className="text-lg font-bold text-cyan-300">Broker & App Setup</h3>
-                <p className="text-xs text-slate-400">Certified for RCG, HFM, FxPro & JustMarkets</p>
+                <h3 className="text-lg font-bold text-cyan-300">Broker & License Hub</h3>
+                <p className="text-xs text-slate-400">Exclusive 4-Broker Execution Bridge</p>
               </div>
               <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* DIRECT DOWNLOAD / INSTALL BUTTON */}
-            <button
-              onClick={handleInstallClick}
-              className="w-full py-3 rounded-xl bg-cyan-950/80 border border-cyan-400 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-cyan-900/60 active:scale-95 transition shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-            >
-              <Download className="w-4 h-4 text-cyan-400" />
-              Install / Download App to Phone Home Screen
-            </button>
-
-            <div className="bg-cyan-950/60 border border-cyan-500/40 rounded-xl p-3 text-xs text-cyan-200 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span>Only certified connections to <strong>RCG, HFM, FxPro</strong>, and <strong>JustMarkets</strong> are accepted.</span>
+            <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-emerald-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-bold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                License Active: {licenseInput || 'BSA-MASTER'}
+              </span>
+              <button onClick={handleLockOut} className="text-[10px] text-red-400 underline hover:text-red-300">
+                Log Out
+              </button>
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -406,44 +478,20 @@ export default function MobileConsole() {
               Save & Link Broker
             </button>
 
-            <div className="mt-2 pt-4 border-t border-slate-800 flex flex-col gap-2.5">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-300">Access Pass</span>
-                <span className="text-cyan-400 font-semibold">R200 (3 Mos) / R600 Life</span>
-              </div>
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-xs space-y-1 text-slate-300">
-                <p><strong>Bank:</strong> Capitec Bank</p>
-                <p><strong>Account Holder:</strong> T SEAKE</p>
-                <p><strong>Account Number:</strong> 2201301286</p>
-              </div>
-              <a 
-                href="https://wa.me/27649291083?text=Hi%20Thabang,%20I%20have%20made%20payment%20for%20BlueScalp%20Assassin" 
-                target="_blank" 
-                rel="noreferrer"
-                className="w-full py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-500/30 transition"
-              >
-                Send Proof to WhatsApp (+27 64 929 1083)
-              </a>
-            </div>
-
           </div>
         </div>
       )}
 
-      {/* --- MODAL: CHART SCANNER --- */}
+      {/* SCANNER MODAL */}
       {modalOpen === 'scanner' && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)]">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div>
-                <h3 className="text-lg font-bold text-cyan-300">AI Chart Scanner</h3>
-                <p className="text-xs text-slate-400">Institutional FVG, MSS & Sweep Detector</p>
-              </div>
+              <h3 className="text-lg font-bold text-cyan-300">AI Chart Scanner</h3>
               <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <div 
               onClick={() => {
                 setScannerStatus('scanning');
@@ -453,40 +501,27 @@ export default function MobileConsole() {
             >
               <Upload className="w-8 h-8 text-cyan-400" />
               <p className="text-xs font-semibold text-slate-200">Tap to upload chart screenshot</p>
-              <p className="text-[10px] text-slate-400">Supports M1, M5, M15, H1, H4</p>
             </div>
-
-            {scannerStatus === 'scanning' && (
-              <p className="text-xs text-center text-cyan-300 animate-pulse font-semibold">
-                Scanning liquidity zones & order blocks...
-              </p>
-            )}
-
             {scannerStatus === 'detected' && (
               <div className="bg-cyan-950/40 border border-cyan-500/40 rounded-xl p-3 text-xs space-y-1">
                 <p className="font-bold text-emerald-400">✓ Valid Setup Detected (XAUUSD)</p>
                 <p className="text-slate-300">H1 Sweep Confirmed • Bullish MSS on M1 • FVG Retest</p>
-                <p className="text-cyan-300 font-semibold">Ready for Machine Gunner 3-Bullet Burst</p>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* --- MODAL: SIGNALS FEED --- */}
+      {/* SIGNALS MODAL */}
       {modalOpen === 'signals' && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)] max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div>
-                <h3 className="text-lg font-bold text-cyan-300">Live Signals Feed</h3>
-                <p className="text-xs text-slate-400">Machine Gunner Realtime Tape</p>
-              </div>
+              <h3 className="text-lg font-bold text-cyan-300">Live Signals Feed</h3>
               <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <div className="space-y-2">
               <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/30 flex justify-between items-center">
                 <div>
@@ -495,20 +530,12 @@ export default function MobileConsole() {
                 </div>
                 <span className="text-xs font-mono text-cyan-300">EXECUTED</span>
               </div>
-
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/30 flex justify-between items-center">
-                <div>
-                  <span className="text-xs font-bold text-emerald-400">BUY NAS100</span>
-                  <p className="text-[10px] text-slate-400">London Session Sweep Alignment</p>
-                </div>
-                <span className="text-xs font-mono text-cyan-300">EXECUTED</span>
-              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- MODAL: STATUS --- */}
+      {/* STATUS MODAL */}
       {modalOpen === 'status' && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)]">
@@ -518,19 +545,10 @@ export default function MobileConsole() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
                 <p className="text-slate-400">Latency</p>
                 <p className="text-sm font-bold text-emerald-400 mt-0.5">14ms</p>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                <p className="text-slate-400">Active Session</p>
-                <p className="text-sm font-bold text-cyan-300 mt-0.5">London (SAST)</p>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                <p className="text-slate-400">Trailing Stop Limit</p>
-                <p className="text-sm font-bold text-amber-400 mt-0.5">40% Peak Equity</p>
               </div>
               <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
                 <p className="text-slate-400">Allowed Brokers</p>
@@ -541,7 +559,7 @@ export default function MobileConsole() {
         </div>
       )}
 
-      {/* --- MODAL: ADD ROBOT --- */}
+      {/* ADD ROBOT MODAL */}
       {modalOpen === 'add_robot' && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)]">
@@ -552,12 +570,9 @@ export default function MobileConsole() {
               </button>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Only mentor <strong>Thabang Seake (Tman Capitals)</strong> is authorized to register custom robots and strategies.
+              Only mentor <strong>Thabang Seake (Tman Capitals)</strong> is authorized to register custom robots.
             </p>
-            <button 
-              onClick={() => setModalOpen(null)} 
-              className="w-full py-3 rounded-xl bg-cyan-400 text-slate-950 font-bold text-xs"
-            >
+            <button onClick={() => setModalOpen(null)} className="w-full py-3 rounded-xl bg-cyan-400 text-slate-950 font-bold text-xs">
               Done
             </button>
           </div>

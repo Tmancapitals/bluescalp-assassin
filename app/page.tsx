@@ -35,68 +35,84 @@ const ALLOWED_BROKERS = [
 const SUPPORTED_PAIRS = ['XAUUSD', 'USDJPY', 'NAS100', 'US30', 'GER40', 'EURUSD', 'BTCUSD', 'XAGUSD'];
 
 export default function MobileConsole() {
-  // License Auth Gate State
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [licenseInput, setLicenseInput] = useState('');
+  const [clientInfo, setClientInfo] = useState<{ clientName: string; expiresAt: string } | null>(null);
   const [authError, setAuthError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Bot State
   const [isActive, setIsActive] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'signals' | 'scanner' | 'settings'>('home');
   const [modalOpen, setModalOpen] = useState<'connect' | 'scanner' | 'signals' | 'status' | 'add_robot' | null>(null);
   
-  // Floating Widget State
   const [widgetExpanded, setWidgetExpanded] = useState(false);
 
-  // Broker State
   const [selectedBroker, setSelectedBroker] = useState(ALLOWED_BROKERS[0].name);
   const [mt5Login, setMt5Login] = useState('');
   const [mt5Server, setMt5Server] = useState(ALLOWED_BROKERS[0].servers[0]);
   const [brokerConnected, setBrokerConnected] = useState(false);
 
-  // Scanner state
   const [scannerStatus, setScannerStatus] = useState<'idle' | 'scanning' | 'detected'>('idle');
 
-  // Check saved license on startup
+  // Verify stored key with database on startup
   useEffect(() => {
     const savedKey = localStorage.getItem('bluescalp_license_key');
     if (savedKey) {
-      setIsUnlocked(true);
-      setLicenseInput(savedKey);
+      verifyKeyWithDatabase(savedKey, true);
     }
   }, []);
 
-  const handleUnlock = () => {
-    setAuthError('');
-    setIsVerifying(true);
+  const verifyKeyWithDatabase = async (keyToTest: string, isSilent = false) => {
+    if (!isSilent) {
+      setAuthError('');
+      setIsVerifying(true);
+    }
 
-    setTimeout(() => {
-      const key = licenseInput.trim().toUpperCase();
-      // Validates master key or any standard BSA- format license
-      if (key === 'BSA-MASTER-TMAN-2026' || (key.startsWith('BSA-') && key.length >= 10)) {
-        localStorage.setItem('bluescalp_license_key', key);
+    try {
+      const res = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: keyToTest.trim().toUpperCase() })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.valid) {
+        localStorage.setItem('bluescalp_license_key', keyToTest.trim().toUpperCase());
+        setClientInfo({ clientName: data.clientName, expiresAt: data.expiresAt });
         setIsUnlocked(true);
       } else {
-        setAuthError('Invalid or expired license key. Please check your key or contact mentor.');
+        localStorage.removeItem('bluescalp_license_key');
+        setIsUnlocked(false);
+        if (!isSilent) {
+          setAuthError(data.message || 'Invalid or expired license key.');
+        }
       }
-      setIsVerifying(false);
-    }, 600);
+    } catch {
+      if (!isSilent) setAuthError('Connection error verifying license.');
+    } finally {
+      if (!isSilent) setIsVerifying(false);
+    }
+  };
+
+  const handleUnlock = () => {
+    if (!licenseInput.trim()) return;
+    verifyKeyWithDatabase(licenseInput, false);
   };
 
   const handleLockOut = () => {
     localStorage.removeItem('bluescalp_license_key');
     setIsUnlocked(false);
     setLicenseInput('');
+    setClientInfo(null);
   };
 
-  // --- 1. GATEWAY SCREEN (IF LOCKED) ---
+  // --- LOCKED TERMINAL VIEW ---
   if (!isUnlocked) {
     return (
       <div className="min-h-screen bg-[#030811] text-slate-100 flex items-center justify-center p-4 font-sans select-none">
         <div className="w-full max-w-sm rounded-3xl border-2 border-cyan-500/40 bg-[#06121f] p-6 shadow-[0_0_40px_rgba(6,182,212,0.3)] flex flex-col items-center gap-5 relative overflow-hidden">
           
-          {/* Subtle Robot Glow in Background */}
           <div className="absolute inset-0 opacity-20 pointer-events-none">
             <Image 
               src="/images/bluescalp-bot.jpg" 
@@ -106,7 +122,6 @@ export default function MobileConsole() {
             />
           </div>
 
-          {/* Glowing Lock Badge */}
           <div className="relative z-10 w-16 h-16 rounded-full bg-cyan-950/80 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)]">
             <Lock className="w-7 h-7 text-cyan-300" />
           </div>
@@ -120,7 +135,6 @@ export default function MobileConsole() {
             </p>
           </div>
 
-          {/* Activation Form */}
           <div className="relative z-10 w-full flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
@@ -129,7 +143,7 @@ export default function MobileConsole() {
               </label>
               <input 
                 type="text" 
-                placeholder="BSA-PRO-XXXX-XXXX"
+                placeholder="e.g. BSA-MASTER-TMAN-2026"
                 value={licenseInput}
                 onChange={(e) => setLicenseInput(e.target.value.toUpperCase())}
                 className="w-full bg-slate-900/90 border border-cyan-500/40 rounded-xl p-3.5 text-sm font-mono text-cyan-200 placeholder-slate-500 focus:outline-none focus:border-cyan-300 shadow-inner tracking-wider"
@@ -148,11 +162,10 @@ export default function MobileConsole() {
               disabled={isVerifying || !licenseInput.trim()}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95 disabled:opacity-50 transition"
             >
-              {isVerifying ? 'Verifying Key...' : 'Activate Terminal'}
+              {isVerifying ? 'Verifying with Database...' : 'Activate Terminal'}
             </button>
           </div>
 
-          {/* Purchase Pricing & Capitec EFT Box */}
           <div className="relative z-10 w-full pt-4 border-t border-slate-800 flex flex-col gap-2.5 text-xs">
             <div className="flex justify-between items-center">
               <span className="font-bold text-slate-300">Need a License?</span>
@@ -180,12 +193,12 @@ export default function MobileConsole() {
     );
   }
 
-  // --- 2. MAIN BOT CONSOLE (UNLOCKED) ---
+  // --- UNLOCKED FULL APP ---
   return (
     <div className="min-h-screen bg-[#030811] text-slate-100 flex justify-center pb-28 font-sans select-none relative overflow-x-hidden">
       <main className="w-full max-w-md px-4 pt-3 flex flex-col gap-3.5">
         
-        {/* TOP HERO ROBOT CARD */}
+        {/* HERO ROBOT CARD */}
         <div className="relative w-full rounded-[28px] border-2 border-cyan-500/50 bg-[#06121f] p-4 shadow-[0_0_35px_rgba(6,182,212,0.25)] overflow-hidden flex flex-col justify-between min-h-[460px]">
           <div className="absolute inset-0 z-0">
             <Image 
@@ -222,7 +235,7 @@ export default function MobileConsole() {
                 BLUESCALP ASSASSIN V1.0
               </h1>
               <p className="text-xs font-semibold text-cyan-400/90 tracking-wide mt-0.5">
-                by Tman Capitals
+                by Tman Capitals {clientInfo ? `• Verified: ${clientInfo.clientName}` : ''}
               </p>
             </div>
 
@@ -423,7 +436,7 @@ export default function MobileConsole() {
             <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-emerald-300 flex items-center justify-between">
               <span className="flex items-center gap-1.5 font-bold">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                License Active: {licenseInput || 'BSA-MASTER'}
+                Active: {clientInfo?.clientName || 'Master Access'}
               </span>
               <button onClick={handleLockOut} className="text-[10px] text-red-400 underline hover:text-red-300">
                 Log Out

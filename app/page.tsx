@@ -1,662 +1,287 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { 
-  Play, 
-  Pause, 
-  DollarSign, 
-  TrendingUp, 
-  Radio, 
-  Activity, 
-  Plus, 
-  Home, 
-  Sliders, 
-  ShieldCheck, 
-  Zap, 
-  Upload, 
-  X,
-  Pencil,
-  ChevronDown,
-  Lock,
-  KeyRound,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw
-} from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
 
-const ALLOWED_BROKERS = [
-  { id: 'rcg', name: 'RCG Markets', servers: ['RCGMarkets-Live', 'RCGMarkets-Demo'] },
-  { id: 'hfm', name: 'HFM (HF Markets)', servers: ['HFMarketsSA-Live', 'HFMarkets-Live2'] },
-  { id: 'fxpro', name: 'FxPro', servers: ['FxPro-MT5-Live', 'FxPro-MT5-Real02'] },
-  { id: 'justmarkets', name: 'JustMarkets', servers: ['JustMarkets-Live', 'JustMarkets-Live2'] },
-];
+export default function HomePage() {
+  const [licenseKey, setLicenseKey] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [loading, setLoading] = useState(false);
 
-export default function MobileConsole() {
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [licenseInput, setLicenseInput] = useState('');
-  const [activeKey, setActiveKey] = useState('');
-  const [clientInfo, setClientInfo] = useState<{ clientName: string; expiresAt: string } | null>(null);
-  const [authError, setAuthError] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-
-  const [isActive, setIsActive] = useState(true);
-  const [activeTab, setActiveTab] = useState<'home' | 'signals' | 'scanner' | 'settings'>('home');
-  const [modalOpen, setModalOpen] = useState<'connect' | 'scanner' | 'signals' | 'status' | 'add_robot' | null>(null);
-  
-  const [widgetExpanded, setWidgetExpanded] = useState(false);
-
-  const [selectedBroker, setSelectedBroker] = useState(ALLOWED_BROKERS[0].name);
-  const [mt5Login, setMt5Login] = useState('');
-  const [mt5Server, setMt5Server] = useState(ALLOWED_BROKERS[0].servers[0]);
-  const [brokerConnected, setBrokerConnected] = useState(false);
-
-  // Live signals state
+  // Bot running state
+  const [botRunning, setBotRunning] = useState(false);
+  const [selectedBroker, setSelectedBroker] = useState("RCG");
   const [signals, setSignals] = useState<any[]>([]);
-  const [loadingSignals, setLoadingSignals] = useState(false);
-  const [latestSignal, setLatestSignal] = useState<any>(null);
+  const [showSignalHud, setShowSignalHud] = useState(false);
 
-  const [scannerStatus, setScannerStatus] = useState<'idle' | 'scanning' | 'detected'>('idle');
+  // Floating draggable bot position
+  const [botPos, setBotPos] = useState({ x: 20, y: 120 });
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const hasMoved = useRef(false);
 
-  // Verify stored key on start
+  // Check saved license on launch
   useEffect(() => {
-    const savedKey = localStorage.getItem('bluescalp_license_key');
-    if (savedKey) {
-      verifyKeyWithDatabase(savedKey, true);
+    const saved = localStorage.getItem("bsa_license");
+    if (saved) {
+      setLicenseKey(saved);
+      verifyKey(saved);
     }
   }, []);
 
-  // Poll for live signals every 10 seconds if active & unlocked
-  useEffect(() => {
-    if (!isUnlocked || !activeKey) return;
-    fetchSignals();
-    const interval = setInterval(fetchSignals, 10000);
-    return () => clearInterval(interval);
-  }, [isUnlocked, activeKey]);
-
-  const fetchSignals = async () => {
-    if (!activeKey) return;
+  const verifyKey = async (keyToTest: string) => {
+    setLoading(true);
+    setErrorMsg("");
     try {
-      const res = await fetch('/api/mt5/signals', {
-        headers: { 'x-license-key': activeKey }
+      const res = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: keyToTest.trim() }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setSignals(data);
-          if (data.length > 0) setLatestSignal(data[0]);
-        }
-      }
-    } catch (e) {
-      console.error('Error fetching signals:', e);
-    }
-  };
-
-  const verifyKeyWithDatabase = async (keyToTest: string, isSilent = false) => {
-    if (!isSilent) {
-      setAuthError('');
-      setIsVerifying(true);
-    }
-
-    try {
-      const res = await fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: keyToTest.trim().toUpperCase() })
-      });
-
       const data = await res.json();
-
       if (res.ok && data.valid) {
-        const cleanKey = keyToTest.trim().toUpperCase();
-        localStorage.setItem('bluescalp_license_key', cleanKey);
-        setActiveKey(cleanKey);
-        setClientInfo({ clientName: data.clientName, expiresAt: data.expiresAt });
-        setIsUnlocked(true);
+        setUnlocked(true);
+        localStorage.setItem("bsa_license", keyToTest.trim());
       } else {
-        localStorage.removeItem('bluescalp_license_key');
-        setActiveKey('');
-        setIsUnlocked(false);
-        if (!isSilent) {
-          setAuthError(data.message || 'Invalid or expired license key.');
-        }
+        setErrorMsg(data.message || "Invalid or inactive license key.");
       }
     } catch {
-      if (!isSilent) setAuthError('Connection error verifying license.');
+      setErrorMsg("Connection error. Check network.");
     } finally {
-      if (!isSilent) setIsVerifying(false);
+      setLoading(false);
     }
   };
 
-  const handleUnlock = () => {
-    if (!licenseInput.trim()) return;
-    verifyKeyWithDatabase(licenseInput, false);
+  // Draggable touch / mouse handlers
+  const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
+    isDragging.current = true;
+    hasMoved.current = false;
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    dragStart.current = {
+      x: clientX - botPos.x,
+      y: clientY - botPos.y,
+    };
   };
 
-  const handleLockOut = () => {
-    localStorage.removeItem('bluescalp_license_key');
-    setIsUnlocked(false);
-    setActiveKey('');
-    setLicenseInput('');
-    setClientInfo(null);
+  const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isDragging.current) return;
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+
+    const dx = Math.abs(clientX - (dragStart.current.x + botPos.x));
+    const dy = Math.abs(clientY - (dragStart.current.y + botPos.y));
+    if (dx > 5 || dy > 5) {
+      hasMoved.current = true;
+    }
+
+    const nextX = Math.max(10, Math.min(window.innerWidth - 75, clientX - dragStart.current.x));
+    const nextY = Math.max(10, Math.min(window.innerHeight - 75, clientY - dragStart.current.y));
+    setBotPos({ x: nextX, y: nextY });
   };
 
-  if (!isUnlocked) {
+  const handleEnd = () => {
+    isDragging.current = false;
+  };
+
+  const handleIconClick = () => {
+    if (hasMoved.current) return;
+    setShowSignalHud((prev) => !prev);
+  };
+
+  // 1. Lock Screen View
+  if (!unlocked) {
     return (
-      <div className="min-h-screen bg-[#030811] text-slate-100 flex items-center justify-center p-4 font-sans select-none">
-        <div className="w-full max-w-sm rounded-3xl border-2 border-cyan-500/40 bg-[#06121f] p-6 shadow-[0_0_40px_rgba(6,182,212,0.3)] flex flex-col items-center gap-5 relative overflow-hidden">
-          
-          <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <Image 
-              src="/images/bluescalp-bot.jpg" 
-              alt="BlueScalp Robot" 
-              fill 
-              className="object-cover object-top"
+      <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 backdrop-blur-xl shadow-2xl flex flex-col items-center text-center">
+          <div className="w-24 h-24 rounded-full border-2 border-cyan-400 overflow-hidden shadow-cyan-500/20 shadow-lg mb-6">
+            <img
+              src="/images/bluescalp-bot.jpg"
+              alt="BlueScalp Bot"
+              className="w-full h-full object-cover"
             />
           </div>
 
-          <div className="relative z-10 w-16 h-16 rounded-full bg-cyan-950/80 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)]">
-            <Lock className="w-7 h-7 text-cyan-300" />
-          </div>
+          <h1 className="text-2xl font-black tracking-wider text-cyan-400 uppercase mb-1">
+            BlueScalp Assassin
+          </h1>
+          <p className="text-xs text-slate-400 mb-6 uppercase tracking-widest">
+            V1.0 • Powered by ProEdge EA
+          </p>
 
-          <div className="relative z-10 text-center">
-            <h1 className="text-2xl font-black text-cyan-300 tracking-tight">
-              BLUESCALP ASSASSIN
-            </h1>
-            <p className="text-xs font-semibold text-cyan-400/80 mt-0.5">
-              by Tman Capitals • Protected Terminal
-            </p>
-          </div>
+          <div className="w-full space-y-4">
+            <input
+              type="text"
+              placeholder="e.g. THA-BNG-AKE-749"
+              value={licenseKey}
+              onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
+              className="w-full bg-slate-950/80 border border-slate-700 focus:border-cyan-400 rounded-xl px-4 py-3.5 text-center font-mono tracking-widest text-sm text-cyan-300 outline-none transition"
+            />
 
-          <div className="relative z-10 w-full flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
-                Enter Access License Key
-              </label>
-              <input 
-                type="text" 
-                placeholder="e.g. BSA-MASTER-TMAN-2026"
-                value={licenseInput}
-                onChange={(e) => setLicenseInput(e.target.value.toUpperCase())}
-                className="w-full bg-slate-900/90 border border-cyan-500/40 rounded-xl p-3.5 text-sm font-mono text-cyan-200 placeholder-slate-500 focus:outline-none focus:border-cyan-300 shadow-inner tracking-wider"
-              />
-            </div>
-
-            {authError && (
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-950/60 border border-red-500/40 text-[11px] text-red-300">
-                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                <span>{authError}</span>
-              </div>
+            {errorMsg && (
+              <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 py-2 rounded-lg">
+                {errorMsg}
+              </p>
             )}
 
             <button
-              onClick={handleUnlock}
-              disabled={isVerifying || !licenseInput.trim()}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95 disabled:opacity-50 transition"
+              onClick={() => verifyKey(licenseKey)}
+              disabled={loading || !licenseKey}
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/20 transition active:scale-95"
             >
-              {isVerifying ? 'Verifying with Database...' : 'Activate Terminal'}
+              {loading ? "Verifying License..." : "Unlock Terminal"}
             </button>
           </div>
 
-          <div className="relative z-10 w-full pt-4 border-t border-slate-800 flex flex-col gap-2.5 text-xs">
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-slate-300">Need a License?</span>
-              <span className="text-cyan-400 font-bold">R200 (3 Mos) / R600 Life</span>
-            </div>
-            
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-slate-300 space-y-1 text-[11px]">
-              <p><strong>Bank:</strong> Capitec Bank</p>
-              <p><strong>Account Holder:</strong> T SEAKE</p>
-              <p><strong>Account Number:</strong> 2201301286</p>
-            </div>
-
-            <a 
-              href="https://wa.me/27649291083?text=Hi%20Thabang,%20I%20want%20to%20buy%20a%20license%20key%20for%20BlueScalp%20Assassin" 
-              target="_blank" 
-              rel="noreferrer"
-              className="w-full py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-500/30 transition text-center"
-            >
-              Request Key on WhatsApp (+27 64 929 1083)
-            </a>
-          </div>
-
+          <p className="text-[10px] text-slate-500 mt-6">
+            By Tman Capitals • WhatsApp +27 64 929 1083
+          </p>
         </div>
-      </div>
+      </main>
     );
   }
 
+  // 2. Unlocked Dashboard View
   return (
-    <div className="min-h-screen bg-[#030811] text-slate-100 flex justify-center pb-28 font-sans select-none relative overflow-x-hidden">
-      <main className="w-full max-w-md px-4 pt-3 flex flex-col gap-3.5">
-        
-        {/* HERO ROBOT CARD */}
-        <div className="relative w-full rounded-[28px] border-2 border-cyan-500/50 bg-[#06121f] p-4 shadow-[0_0_35px_rgba(6,182,212,0.25)] overflow-hidden flex flex-col justify-between min-h-[460px]">
-          <div className="absolute inset-0 z-0">
-            <Image 
-              src="/images/bluescalp-bot.jpg" 
-              alt="BlueScalp Robot" 
-              fill 
-              className="object-cover object-top"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#06121f] via-60%" />
+    <main
+      className="min-h-screen bg-slate-950 text-white p-4 pb-24 select-none"
+      onTouchMove={handleMove}
+      onTouchEnd={handleEnd}
+      onMouseMove={handleMove}
+      onMouseUp={handleEnd}
+    >
+      {/* Floating Draggable Bot Icon */}
+      <div
+        style={{
+          position: "fixed",
+          left: `${botPos.x}px`,
+          top: `${botPos.y}px`,
+          zIndex: 9999,
+          touchAction: "none",
+        }}
+        onTouchStart={handleStart}
+        onMouseDown={handleStart}
+        onClick={handleIconClick}
+        className="w-16 h-16 rounded-full cursor-grab active:cursor-grabbing shadow-2xl border-2 border-cyan-400 overflow-hidden bg-slate-900 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+      >
+        <img
+          src="/images/bluescalp-bot.jpg"
+          alt="Floating Bot"
+          className="w-full h-full object-cover pointer-events-none"
+        />
+        {botRunning && (
+          <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-slate-950 animate-pulse" />
+        )}
+      </div>
+
+      {/* Main Container */}
+      <div className="max-w-md mx-auto space-y-4 pt-2">
+        <header className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h1 className="text-lg font-black tracking-wide text-cyan-400">
+              BLUESCALP ASSASSIN
+            </h1>
+            <p className="text-[10px] text-slate-400">V1.0 • Tman Capitals</p>
           </div>
-
-          <div className="relative z-10 flex items-center justify-between">
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wider backdrop-blur-md border uppercase transition ${
-              isActive 
-                ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.35)]' 
-                : 'bg-amber-500/20 border-amber-400/50 text-amber-300'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              {isActive ? 'BOT ACTIVE' : 'BOT PAUSED'}
-            </div>
-
-            <button 
-              onClick={() => setModalOpen('connect')}
-              className="w-8 h-8 rounded-full bg-slate-900/70 border border-white/20 backdrop-blur-md flex items-center justify-center text-slate-200 active:scale-95 transition"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="relative z-10 flex flex-col gap-2.5 mt-auto pt-8">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-cyan-300 drop-shadow-[0_2px_14px_rgba(6,182,212,0.8)]">
-                BLUESCALP ASSASSIN V1.0
-              </h1>
-              <p className="text-xs font-semibold text-cyan-400/90 tracking-wide mt-0.5">
-                by Tman Capitals {clientInfo ? `• Verified: ${clientInfo.clientName}` : ''}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-[11px] font-bold text-cyan-300">
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                LIVE
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-[11px] font-semibold text-cyan-200">
-                <Zap className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400" />
-                POWERED BY PROEDGE EA
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-xl bg-cyan-950/40 border border-cyan-500/30 px-3.5 py-2 text-xs backdrop-blur-md mt-1">
-              <span className="text-slate-200 font-semibold">The Assassin</span>
-              <span className="text-slate-300 font-medium">8 pairs</span>
-              <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 font-bold text-[11px]">
-                <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
-                {signals.length > 0 ? `${signals.length} Signals` : (brokerConnected ? 'Connected' : 'Listening')}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* MAIN ENGINE BUTTON */}
-        <button
-          onClick={() => setIsActive(!isActive)}
-          className={`w-full py-4 rounded-2xl border-2 font-black tracking-widest text-sm uppercase flex items-center justify-center gap-2.5 transition active:scale-[0.98] ${
-            isActive 
-              ? 'bg-[#061424] border-cyan-400 text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.3)]' 
-              : 'bg-[#061d15] border-emerald-400 text-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.3)]'
-          }`}
-        >
-          {isActive ? (
-            <>
-              <Pause className="w-4 h-4 fill-cyan-300" />
-              PAUSE ENGINE
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 fill-emerald-300" />
-              START ENGINE
-            </>
-          )}
-        </button>
-
-        {/* 4 CIRCULAR ACTIONS */}
-        <div className="w-full bg-[#081525] border border-cyan-500/20 rounded-2xl py-3.5 px-4 flex items-center justify-between shadow-lg">
-          <button onClick={() => setModalOpen('connect')} className="flex flex-col items-center gap-1.5 group">
-            <div className="w-13 h-13 rounded-full bg-cyan-950/60 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-active:scale-95 transition">
-              <DollarSign className="w-5 h-5 text-cyan-300" />
-            </div>
-            <span className="text-[11px] font-medium text-slate-300">Connect</span>
-          </button>
-
-          <button onClick={() => setModalOpen('scanner')} className="flex flex-col items-center gap-1.5 group">
-            <div className="w-13 h-13 rounded-full bg-cyan-950/60 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-active:scale-95 transition">
-              <TrendingUp className="w-5 h-5 text-cyan-300" />
-            </div>
-            <span className="text-[11px] font-medium text-slate-300">Chart Scan</span>
-          </button>
-
-          <button onClick={() => setModalOpen('signals')} className="flex flex-col items-center gap-1.5 group">
-            <div className="w-13 h-13 rounded-full bg-cyan-950/60 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-active:scale-95 transition">
-              <Radio className="w-5 h-5 text-cyan-300" />
-            </div>
-            <span className="text-[11px] font-medium text-slate-300">Signals</span>
-          </button>
-
-          <button onClick={() => setModalOpen('status')} className="flex flex-col items-center gap-1.5 group">
-            <div className="w-13 h-13 rounded-full bg-cyan-950/60 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-active:scale-95 transition">
-              <Activity className="w-5 h-5 text-cyan-300" />
-            </div>
-            <span className="text-[11px] font-medium text-slate-300">Status</span>
-          </button>
-        </div>
-
-        {/* MY ROBOTS SECTION */}
-        <div className="flex items-center justify-between pt-1">
-          <h2 className="text-base font-bold text-white tracking-wide">My Robots</h2>
-          <button 
-            onClick={() => setModalOpen('add_robot')}
-            className="flex items-center gap-1 px-4 py-2 rounded-xl bg-cyan-400 text-slate-950 font-black text-xs shadow-[0_0_15px_rgba(6,182,212,0.4)] active:scale-95 transition"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            Add New Robot
-          </button>
-        </div>
-
-        <div className="w-full bg-[#081525] border border-cyan-500/20 rounded-2xl p-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative w-12 h-12 rounded-xl border border-cyan-500/40 overflow-hidden bg-slate-900">
-              <Image 
-                src="/images/bluescalp-bot.jpg" 
-                alt="BlueScalp Robot" 
-                fill 
-                className="object-cover" 
-              />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-100">Machine Gunner V1.0</p>
-              <p className="text-[11px] text-cyan-400 font-medium">8 Pairs • RCG / HFM / FxPro / JustMarkets</p>
-            </div>
-          </div>
-          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/30">
-            ONLINE
+          <span className="text-[10px] font-mono px-2 py-1 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+            PROEDGE EA
           </span>
-        </div>
+        </header>
 
-      </main>
-
-      {/* CIRCULAR FLOATING ICON */}
-      {isActive && (
-        <aside aria-label="Live bot floating status" className="fixed bottom-20 right-4 z-40 flex flex-col items-end">
-          {widgetExpanded && (
-            <div className="w-76 mb-2 rounded-2xl border-2 border-cyan-400/80 bg-[#071322]/95 backdrop-blur-xl p-3.5 shadow-[0_0_35px_rgba(6,182,212,0.45)] text-xs flex flex-col gap-2.5">
-              <div className="flex items-center justify-between pb-1.5 border-b border-cyan-500/30">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span className="font-black text-cyan-300 tracking-wider text-[11px]">PROEDGE SIGNAL RADAR</span>
-                </div>
-                <button onClick={() => setWidgetExpanded(false)} className="text-slate-400 hover:text-white">
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              </div>
-
-              {latestSignal ? (
-                <div className="bg-[#040a12] border border-cyan-500/30 rounded-xl p-2.5 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className={`font-bold ${latestSignal.action === 'BUY' ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {latestSignal.symbol} • {latestSignal.action} BURST
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-[10px] font-bold">
-                      {latestSignal.status || 'ACTIVE'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-300 pt-1">
-                    <p><strong>Entry:</strong> {latestSignal.entry_price || 'Market'}</p>
-                    <p><strong>Bullets:</strong> {latestSignal.bullets || 3} Fired</p>
-                    <p><strong>SL:</strong> {latestSignal.sl_price || 'ATR Stop'}</p>
-                    <p><strong>TP:</strong> {latestSignal.tp_price || '+45 pts'}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-[#040a12] border border-slate-800 rounded-xl p-3 text-center text-[11px] text-slate-400">
-                  Scanning London & NY Sessions... No live burst active.
-                </div>
-              )}
-            </div>
-          )}
+        {/* Engine Status Card */}
+        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs uppercase tracking-wider text-slate-400">
+              Machine Gunner Engine
+            </span>
+            <span
+              className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                botRunning
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  : "bg-slate-800 text-slate-400"
+              }`}
+            >
+              {botRunning ? "ACTIVE" : "STANDBY"}
+            </span>
+          </div>
 
           <button
-            onClick={() => setWidgetExpanded(!widgetExpanded)}
-            className="relative w-14 h-14 rounded-full border-2 border-cyan-400 bg-slate-900 shadow-[0_0_22px_rgba(6,182,212,0.6)] flex items-center justify-center p-0.5 active:scale-90 transition transform"
+            onClick={() => setBotRunning(!botRunning)}
+            className={`w-full py-4 rounded-xl font-black text-sm tracking-wider uppercase transition shadow-lg active:scale-95 ${
+              botRunning
+                ? "bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20"
+                : "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/20"
+            }`}
           >
-            <div className="relative w-full h-full rounded-full overflow-hidden">
-              <Image 
-                src="/images/bluescalp-bot.jpg" 
-                alt="Bot Icon" 
-                fill 
-                className="object-cover" 
-              />
-            </div>
-            <span className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#030811] animate-pulse" />
+            {botRunning ? "Stop Execution Engine" : "Start Live Execution Engine"}
           </button>
-        </aside>
-      )}
+        </section>
 
-      {/* BOTTOM NAV */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#050e1a]/95 backdrop-blur-xl border-t border-cyan-500/20 py-2.5 px-6 flex justify-between items-center z-40">
-        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition ${activeTab === 'home' ? 'text-cyan-300' : 'text-slate-400'}`}>
-          <Home className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Home</span>
-        </button>
-
-        <button onClick={() => { setActiveTab('signals'); setModalOpen('signals'); }} className={`flex flex-col items-center gap-1 transition ${activeTab === 'signals' ? 'text-cyan-300' : 'text-slate-400'}`}>
-          <Radio className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Signals</span>
-        </button>
-
-        <button onClick={() => { setActiveTab('scanner'); setModalOpen('scanner'); }} className={`flex flex-col items-center gap-1 transition ${activeTab === 'scanner' ? 'text-cyan-300' : 'text-slate-400'}`}>
-          <TrendingUp className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Scanner</span>
-        </button>
-
-        <button onClick={() => { setActiveTab('settings'); setModalOpen('connect'); }} className={`flex flex-col items-center gap-1 transition ${activeTab === 'settings' ? 'text-cyan-300' : 'text-slate-400'}`}>
-          <Sliders className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Settings</span>
-        </button>
-      </nav>
-
-      {/* LIVE SIGNALS MODAL */}
-      {modalOpen === 'signals' && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)] max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-cyan-300">Live Signals Feed</h3>
-                <button onClick={fetchSignals} className="text-cyan-400 hover:text-white p-1">
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-2">
-              {signals.length === 0 ? (
-                <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
-                  No signals broadcast yet. Broadcaster will stream when London or NY conditions align.
-                </div>
-              ) : (
-                signals.map((sig) => (
-                  <div key={sig.id} className="p-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex justify-between items-center text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold ${sig.action === 'BUY' ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {sig.action} {sig.symbol}
-                        </span>
-                        <span className="text-[10px] text-slate-400">{sig.session || 'London/NY'}</span>
-                      </div>
-                      <p className="text-[10px] text-slate-300 mt-1">
-                        Entry: {sig.entry_price || 'Market'} | SL: {sig.sl_price || 'ATR'} | TP: {sig.tp_price || '+45pts'}
-                      </p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-500/40 text-cyan-300 font-mono text-[10px] font-bold">
-                      {sig.status || 'FIRED'}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* BROKER & LICENSE MODAL */}
-      {modalOpen === 'connect' && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)] max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div>
-                <h3 className="text-lg font-bold text-cyan-300">Broker & License Hub</h3>
-                <p className="text-xs text-slate-400">Exclusive 4-Broker Execution Bridge</p>
-              </div>
-              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-emerald-300 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 font-bold">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                Active: {clientInfo?.clientName || 'Master Access'}
-              </span>
-              <button onClick={handleLockOut} className="text-[10px] text-red-400 underline hover:text-red-300">
-                Log Out
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-300">Select Allowed Broker</label>
-              <select 
-                value={selectedBroker} 
-                onChange={(e) => {
-                  setSelectedBroker(e.target.value);
-                  const b = ALLOWED_BROKERS.find(item => item.name === e.target.value);
-                  if (b) setMt5Server(b.servers[0]);
-                }}
-                className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+        {/* Allowed Broker Selection */}
+        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <label className="text-xs font-medium text-slate-400 block mb-2">
+            Target Allowed Broker
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {["RCG", "HFM", "FxPro", "JustMarkets"].map((broker) => (
+              <button
+                key={broker}
+                onClick={() => setSelectedBroker(broker)}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
+                  selectedBroker === broker
+                    ? "bg-cyan-500/10 border-cyan-400 text-cyan-300"
+                    : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                }`}
               >
-                {ALLOWED_BROKERS.map(b => (
-                  <option key={b.id} value={b.name}>{b.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-300">Broker Server</label>
-              <input 
-                type="text" 
-                value={mt5Server}
-                onChange={(e) => setMt5Server(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-300">MT5 Account Number</label>
-              <input 
-                type="number" 
-                placeholder="e.g. 52049102"
-                value={mt5Login}
-                onChange={(e) => setMt5Login(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
-              />
-            </div>
-
-            <button 
-              onClick={() => {
-                setBrokerConnected(true);
-                setModalOpen(null);
-              }}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 font-bold text-sm tracking-wide shadow-md active:scale-95 transition"
-            >
-              Save & Link Broker
-            </button>
-
+                {broker}
+              </button>
+            ))}
           </div>
-        </div>
-      )}
+        </section>
 
-      {/* SCANNER MODAL */}
-      {modalOpen === 'scanner' && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)]">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-cyan-300">AI Chart Scanner</h3>
-              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
+        <p className="text-[11px] text-slate-500 text-center">
+          Tap the floating robot icon to view real-time signal telemetry. Drag it anywhere across your screen.
+        </p>
+      </div>
+
+      {/* Signal HUD Modal (Opened on tapping the robot icon) */}
+      {showSignalHud && (
+        <div className="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+                <h3 className="text-sm font-bold text-white">Live Signal Radar</h3>
+              </div>
+              <button
+                onClick={() => setShowSignalHud(false)}
+                className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-800"
+              >
+                Close
               </button>
             </div>
-            <div 
-              onClick={() => {
-                setScannerStatus('scanning');
-                setTimeout(() => setScannerStatus('detected'), 2000);
-              }}
-              className="border-2 border-dashed border-cyan-500/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 bg-slate-900/60 cursor-pointer hover:border-cyan-400 transition"
-            >
-              <Upload className="w-8 h-8 text-cyan-400" />
-              <p className="text-xs font-semibold text-slate-200">Tap to upload chart screenshot</p>
-            </div>
-            {scannerStatus === 'detected' && (
-              <div className="bg-cyan-950/40 border border-cyan-500/40 rounded-xl p-3 text-xs space-y-1">
-                <p className="font-bold text-emerald-400">✓ Valid Setup Detected (XAUUSD)</p>
-                <p className="text-slate-300">H1 Sweep Confirmed • Bullish MSS on M1 • FVG Retest</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* STATUS MODAL */}
-      {modalOpen === 'status' && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)]">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-cyan-300">System Performance</h3>
-              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                <p className="text-slate-400">Latency</p>
-                <p className="text-sm font-bold text-emerald-400 mt-0.5">14ms</p>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span className="text-slate-400">Strategy</span>
+                <span className="font-mono text-cyan-300 font-semibold">MACHINE GUNNER V1.0</span>
               </div>
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                <p className="text-slate-400">Allowed Brokers</p>
-                <p className="text-sm font-bold text-cyan-300 mt-0.5">RCG, HFM, FxPro, JM</p>
+              <div className="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span className="text-slate-400">Timeframes</span>
+                <span className="font-mono text-slate-200">H4 + H1 + M15 + M5 + M1</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span className="text-slate-400">Target Sessions</span>
+                <span className="font-mono text-slate-200">London & New York</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-800/60">
+                <span className="text-slate-400">Broker Route</span>
+                <span className="font-mono text-cyan-300 font-bold">{selectedBroker}</span>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* ADD ROBOT MODAL */}
-      {modalOpen === 'add_robot' && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#081525] border border-cyan-500/40 rounded-3xl p-6 flex flex-col gap-4 shadow-[0_0_40px_rgba(6,182,212,0.3)]">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-cyan-300">Add New Robot</h3>
-              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Only mentor <strong>Thabang Seake (Tman Capitals)</strong> is authorized to register custom robots.
-            </p>
-            <button onClick={() => setModalOpen(null)} className="w-full py-3 rounded-xl bg-cyan-400 text-slate-950 font-bold text-xs">
-              Done
-            </button>
-          </div>
-        </div>
-      )}
-
-    </div>
+    </main>
   );
 }

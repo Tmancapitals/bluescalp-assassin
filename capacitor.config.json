@@ -1,0 +1,9 @@
+{
+  "appId": "com.tmancapitals.bluescalp",
+  "appName": "BlueScalp Assassin",
+  "webDir": "public",
+  "server": {
+    "url": "https://bluescalp-assassin.vercel.app",
+    "cleartext": true
+  }
+}

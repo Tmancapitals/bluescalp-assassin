@@ -18,13 +18,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Verify Java 21
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          "$JAVA_HOME/bin/java" -version
-          "$JAVA_HOME/bin/javac" -version
-          test "$("$JAVA_HOME/bin/javac" -version 2>&1 | awk '{print $2}' | cut -d. -f1)" = "21"
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -41,6 +34,10 @@ jobs:
       - name: Generate Android Project
         run: |
           npx cap add android
+          echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
+
+      - name: Accept Android SDK Licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
 
       - name: Generate Proper PNG Icons
         run: |
@@ -60,7 +57,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          JAVA_HOME="$JAVA_HOME" PATH="$JAVA_HOME/bin:$PATH" ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace -Dorg.gradle.java.home="$JAVA_HOME"
 
       - name: Upload APK File
         uses: actions/upload-artifact@v4

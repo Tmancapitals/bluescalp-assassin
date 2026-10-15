@@ -82,7 +82,7 @@ export default function RegisterPage() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Sipho Ndlovu"
+                placeholder="XXXXXXXX XXXXXXXX"
                 className="w-full bg-[#040c17] border border-cyan-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400"
               />
             </div>
@@ -96,7 +96,7 @@ export default function RegisterPage() {
                 required
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="e.g. 082 123 4567"
+                placeholder="XXX XXX XXXX"
                 className="w-full bg-[#040c17] border border-cyan-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400"
               />
             </div>
@@ -110,7 +110,7 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. client@email.com"
+                placeholder="XXXXXX@XXXXX.com"
                 className="w-full bg-[#040c17] border border-cyan-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400"
               />
             </div>

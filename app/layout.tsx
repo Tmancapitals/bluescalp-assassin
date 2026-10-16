@@ -65,6 +65,35 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+              <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "BlueScalp Assassin V1.0",
+              "operatingSystem": "Android, Web, Windows",
+              "applicationCategory": "FinanceApplication",
+              "description": "High-precision automated trading robot powered by PROEDGE EA by Tman Capitals. 5-Timeframe Machine Gunner scalping continuation and liquidity sweep reversal.",
+              "offers": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "ZAR",
+                "lowPrice": "200",
+                "highPrice": "600",
+                "offerCount": "2"
+              },
+              "author": {
+                "@type": "Person",
+                "name": "Thabang Seake",
+                "jobTitle": "Lead Mentor & Trader",
+                "worksFor": {
+                  "@type": "Organization",
+                  "name": "Tman Capitals"
+                }
+              }
+            }),
+          }}
+        />
       </head>
       <body className="bg-[#030811] text-slate-100 antialiased overflow-x-hidden min-h-screen">
         {children}

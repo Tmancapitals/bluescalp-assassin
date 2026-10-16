@@ -20,6 +20,9 @@ export const metadata: Metadata = {
     "JustMarkets"
   ],
   authors: [{ name: "Thabang Seake (Tman Capitals)" }],
+  verification: {
+    google: "rROBugV0lLh_DS0vYccmUA26VI1SkflgksU1Qrkemkc",
+  },
   openGraph: {
     title: "BLUESCALP ASSASSIN V1.0 | Machine Gunner Scalper",
     description: "Automated trading terminal with multi-timeframe alignment, 3-bullet burst execution, and 40% trailing equity protection.",
@@ -60,12 +63,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        <meta name="google-site-verification" content="rROBugV0lLh_DS0vYccmUA26VI1SkflgksU1Qrkemkc" />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://bluescalp-assassin.vercel.app/" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-              <script
+        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({

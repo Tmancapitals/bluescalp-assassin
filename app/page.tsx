@@ -1,3 +1,4 @@
+import VipSignalsView from "@/components/VipSignalsView";
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -839,66 +840,9 @@ export default function MobileConsole() {
           </>
         )}
 
-        {/* VIEW 2: SIGNALS TAB (Identical live signals for both bottom nav and circular button) */}
+        {/* VIEW 2: SIGNALS TAB (UPGRADED VIP LIVE SMC SIGNALS) */}
         {activeTab === "signals" && (
-          <div className="w-full flex flex-col gap-3">
-            <div className={`flex items-center justify-between pb-2 border-b ${theme.border}`}>
-              <div>
-                <h2 className={`text-lg font-black ${theme.primaryText} flex items-center gap-2`}>
-                  <Radio className={`w-5 h-5 ${theme.accentText}`} />
-                  Live Signals Feed
-                </h2>
-                <p className="text-xs text-slate-400">Real-time Broadcaster Stream (SAST Sessions)</p>
-              </div>
-              <button 
-                onClick={fetchSignals} 
-                className={`p-2 rounded-xl bg-slate-900 border ${theme.border} ${theme.accentText} hover:text-white active:scale-95 transition`}
-                title="Refresh Signals"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-2.5">
-              {signals.length === 0 ? (
-                <div className={`p-8 rounded-2xl bg-[#081525] border ${theme.border} text-center flex flex-col items-center gap-3`}>
-                  <div className={`w-12 h-12 rounded-full bg-slate-900 border ${theme.border} flex items-center justify-center ${theme.accentText}`}>
-                    <Radio className="w-6 h-6 animate-pulse" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-200">Monitoring for Live Signals</p>
-                    <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
-                      Signals trigger during London (09:00 - 12:00) & New York (15:00 - 18:00) when all 5 timeframes align.
-                    </p>
-                  </div>
-                  <span className={`text-[10px] font-mono ${theme.accentText} px-2.5 py-1 rounded-full bg-slate-900 border ${theme.border}`}>
-                    Polling every 10s • Active License
-                  </span>
-                </div>
-              ) : (
-                signals.map((sig) => (
-                  <div key={sig.id} className={`p-4 rounded-2xl bg-[#081525] border ${theme.border} flex justify-between items-center text-xs shadow-md`}>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-black ${sig.action === "BUY" ? "text-emerald-400" : "text-red-400"}`}>
-                          {sig.action} {sig.symbol}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">({sig.session || "London/NY"})</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-[11px] text-slate-300 mt-1.5 font-mono">
-                        <span>Entry: <strong className="text-white">{sig.entry_price || "Market"}</strong></span>
-                        <span>SL: <strong className="text-red-300">{sig.sl_price || "ATR"}</strong></span>
-                        <span>TP: <strong className="text-emerald-300">{sig.tp_price || "+45pts"}</strong></span>
-                      </div>
-                    </div>
-                    <span className={`px-2.5 py-1 rounded-full bg-slate-900 border ${theme.border} ${theme.accentText} font-mono text-[10px] font-bold`}>
-                      {sig.status || "FIRED"}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <VipSignalsView signals={signals} onRefresh={fetchSignals} theme={theme} />
         )}
 
         {/* VIEW 3: SCANNER TAB (With Trading Style: Scalp, Intraday, Swing) */}

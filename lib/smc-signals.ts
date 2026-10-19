@@ -3,8 +3,10 @@ export interface VipSignal {
   symbol: string;
   displayName: string;
   category: "GOLD" | "FOREX" | "INDEX" | "CRYPTO";
-  action: "BUY" | "SELL";
-  tradeType: "SNIPER_ENTRY" | "A_PLUS" | "SCALP" | "SWING";
+  action: "BUY" | "SELL" | "WAIT";
+  tradeType: "SNIPER_ENTRY" | "A_PLUS" | "SCALP" | "SWING" | "NEUTRAL";
+  status: "VALID" | "WAITING_CONFIRMATION" | "CHOP_FILTERED";
+  isValid: boolean;
   entry: number;
   stopLoss: number;
   takeProfit1: number;
@@ -12,7 +14,7 @@ export interface VipSignal {
   takeProfit3: number;
   riskReward: number;
   confluenceScore: number;
-  confidence: "EXTREME" | "HIGH" | "MEDIUM";
+  confidence: "EXTREME" | "HIGH" | "MEDIUM" | "LOW";
   reasons: string[];
   tags: string[];
   session: string;
@@ -42,7 +44,20 @@ const ASSET_CONFIG: Record<string, { yTicker: string; displayName: string; categ
 
 let cachedSignals: VipSignal[] = [];
 let lastCacheTime = 0;
-const CACHE_TTL_MS = 30000; // 30 seconds cache
+const CACHE_TTL_MS = 25000;
+
+function calculateEMA(prices: number[], period: number): number[] {
+  const k = 2 / (period + 1);
+  const emaArray: number[] = [];
+  let prevEma = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  emaArray[period - 1] = prevEma;
+  for (let i = period; i < prices.length; i++) {
+    const curEma = prices[i] * k + prevEma * (1 - k);
+    emaArray[i] = curEma;
+    prevEma = curEma;
+  }
+  return emaArray;
+}
 
 function getSessionName(): string {
   const hour = new Date().getUTCHours();
@@ -54,7 +69,7 @@ function getSessionName(): string {
 
 async function fetchLiveCandles(ticker: string): Promise<{ candles: Candle[]; price: number }> {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=5m&range=1d`;
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, next: { revalidate: 25 } });
+  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, next: { revalidate: 20 } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
   const res0 = data?.chart?.result?.[0];
@@ -87,18 +102,21 @@ async function fetchLiveCandles(ticker: string): Promise<{ candles: Candle[]; pr
 function analyzeSMC(symbol: string, candles: Candle[], livePrice: number): VipSignal {
   const cfg = ASSET_CONFIG[symbol];
   const n = candles.length;
-  const last = candles[n - 1] || { open: livePrice, high: livePrice, low: livePrice, close: livePrice };
+  const last = candles[n - 1];
 
-  // Calculate Average True Range (ATR) over last 14 candles
-  const lookbackAtr = Math.min(14, n);
-  let atrSum = 0;
-  for (let i = n - lookbackAtr; i < n; i++) {
-    atrSum += candles[i].high - candles[i].low;
-  }
-  const atr = Math.max(atrSum / lookbackAtr, livePrice * 0.001);
+  // 1. Trend Filter using EMAs (20 & 50)
+  const closePrices = candles.map((c) => c.close);
+  const ema20 = calculateEMA(closePrices, Math.min(20, Math.floor(n / 2)));
+  const ema50 = calculateEMA(closePrices, Math.min(50, Math.floor(n * 0.8)));
 
-  // 1. Structure Analysis (BOS / Swing High & Low)
-  const lookback = Math.min(20, n - 2);
+  const currentEma20 = ema20[ema20.length - 1] || last.close;
+  const currentEma50 = ema50[ema50.length - 1] || last.close;
+
+  const isEmaBullish = last.close > currentEma20 && currentEma20 > currentEma50;
+  const isEmaBearish = last.close < currentEma20 && currentEma20 < currentEma50;
+
+  // 2. Structural Highs and Lows (Past 20 candles)
+  const lookback = Math.min(24, n - 2);
   let swingHigh = -Infinity;
   let swingLow = Infinity;
   for (let i = n - lookback; i < n - 1; i++) {
@@ -106,95 +124,118 @@ function analyzeSMC(symbol: string, candles: Candle[], livePrice: number): VipSi
     if (candles[i].low < swingLow) swingLow = candles[i].low;
   }
 
-  // Direction from recent momentum
-  const baseline = candles[Math.max(0, n - 8)].close;
-  const isBullish = last.close >= baseline;
-  const action: "BUY" | "SELL" = isBullish ? "BUY" : "SELL";
+  // 3. Displacement & Break of Structure (BOS)
+  const isBullishBOS = last.close > swingHigh;
+  const isBearishBOS = last.close < swingLow;
 
-  // 2. Fair Value Gap (FVG) Check
-  let hasBullFvg = false;
-  let hasBearFvg = false;
-  for (let i = Math.max(2, n - 6); i < n; i++) {
-    if (candles[i].low > candles[i - 2].high) hasBullFvg = true;
-    if (candles[i].high < candles[i - 2].low) hasBearFvg = true;
+  // 4. Fair Value Gaps (FVG)
+  let bullFvgFound = false;
+  let bearFvgFound = false;
+  for (let i = Math.max(2, n - 8); i < n; i++) {
+    if (candles[i].low > candles[i - 2].high) bullFvgFound = true;
+    if (candles[i].high < candles[i - 2].low) bearFvgFound = true;
   }
 
-  // 3. Liquidity Sweep Detection
-  const sweptLow = last.low < swingLow && last.close > swingLow;
-  const sweptHigh = last.high > swingHigh && last.close < swingHigh;
+  // 5. Liquidity Sweep (Swept low or high and rejected)
+  const sweptSellside = last.low < swingLow && last.close > swingLow;
+  const sweptBuyside = last.high > swingHigh && last.close < swingHigh;
 
-  // 4. Confluence Scoring
-  let confluenceScore = 5.5;
+  // 6. Confluence Evaluation
+  let confluence = 4.0;
+  let action: "BUY" | "SELL" | "WAIT" = "WAIT";
   const reasons: string[] = [];
   const tags: string[] = [];
 
-  if (action === "BUY") {
-    if (hasBullFvg) {
-      confluenceScore += 1.2;
-      reasons.push("M5 Bullish Fair Value Gap (FVG) Detected");
-      tags.push("FVG IMBALANCE");
+  if (isEmaBullish || isBullishBOS || sweptSellside) {
+    action = "BUY";
+    if (isEmaBullish) {
+      confluence += 1.8;
+      reasons.push("M5 Trend Alignment: Price above EMA 20 & 50");
     }
-    if (sweptLow) {
-      confluenceScore += 1.5;
-      reasons.push("Sell-side Liquidity Swept below Swing Low");
-      tags.push("LIQ SWEPT");
-    } else {
-      reasons.push("Bullish Displacement from Discount Zone");
-      tags.push("DISCOUNT ZONE");
-    }
-    if (last.close > swingHigh) {
-      confluenceScore += 1.0;
-      reasons.push("Bullish Break of Structure (BOS)");
+    if (isBullishBOS) {
+      confluence += 2.2;
+      reasons.push(`Bullish Break of Structure past ${swingHigh.toFixed(cfg.decimals)}`);
       tags.push("BOS CONFIRMED");
-    } else {
-      tags.push("CHoCH FORMING");
     }
-  } else {
-    if (hasBearFvg) {
-      confluenceScore += 1.2;
-      reasons.push("M5 Bearish Fair Value Gap (FVG) Mitigation");
-      tags.push("FVG SUPPLY");
+    if (sweptSellside) {
+      confluence += 2.5;
+      reasons.push("Institutional Liquidity Sweep below recent swing low");
+      tags.push("LIQ PURGED");
     }
-    if (sweptHigh) {
-      confluenceScore += 1.5;
-      reasons.push("Buy-side Liquidity Swept above Swing High");
-      tags.push("LIQ SWEPT");
-    } else {
-      reasons.push("Institutional Rejection at Premium Supply");
-      tags.push("PREMIUM ZONE");
+    if (bullFvgFound) {
+      confluence += 1.5;
+      reasons.push("M5 Bullish Fair Value Gap (FVG) Inflow");
+      tags.push("FVG DISCOUNT");
     }
-    if (last.close < swingLow) {
-      confluenceScore += 1.0;
-      reasons.push("Bearish Break of Structure (BOS)");
+  } else if (isEmaBearish || isBearishBOS || sweptBuyside) {
+    action = "SELL";
+    if (isEmaBearish) {
+      confluence += 1.8;
+      reasons.push("M5 Trend Alignment: Price below EMA 20 & 50");
+    }
+    if (isBearishBOS) {
+      confluence += 2.2;
+      reasons.push(`Bearish Break of Structure below ${swingLow.toFixed(cfg.decimals)}`);
       tags.push("BOS CONFIRMED");
-    } else {
-      tags.push("CHoCH FORMING");
+    }
+    if (sweptBuyside) {
+      confluence += 2.5;
+      reasons.push("Institutional Liquidity Sweep above recent swing high");
+      tags.push("LIQ PURGED");
+    }
+    if (bearFvgFound) {
+      confluence += 1.5;
+      reasons.push("M5 Bearish Fair Value Gap (FVG) Supply Retest");
+      tags.push("FVG PREMIUM");
     }
   }
 
-  confluenceScore = Math.min(9.4, Math.round(confluenceScore * 10) / 10);
-  const confidence: VipSignal["confidence"] = confluenceScore >= 7.8 ? "EXTREME" : confluenceScore >= 6.5 ? "HIGH" : "MEDIUM";
-  const tradeType: VipSignal["tradeType"] = confluenceScore >= 8.0 ? "SNIPER_ENTRY" : confluenceScore >= 7.0 ? "A_PLUS" : "SCALP";
+  // 7. Accuracy & Validity Gate
+  const confluenceScore = Math.min(9.8, Math.round(confluence * 10) / 10);
+  const isValid = confluenceScore >= 6.8;
+  const status: VipSignal["status"] = isValid ? "VALID" : confluenceScore >= 5.5 ? "WAITING_CONFIRMATION" : "CHOP_FILTERED";
 
-  // Dynamic Levels based on ATR
+  // Trade Type Classification
+  let tradeType: VipSignal["tradeType"] = "SCALP";
+  if (sweptSellside || sweptBuyside) {
+    tradeType = "SNIPER_ENTRY";
+  } else if (confluenceScore >= 7.8) {
+    tradeType = "A_PLUS";
+  } else if ((isBullishBOS || isBearishBOS) && confluenceScore >= 7.0) {
+    tradeType = "SWING";
+  }
+
+  const confidence: VipSignal["confidence"] =
+    confluenceScore >= 8.2 ? "EXTREME" : confluenceScore >= 7.0 ? "HIGH" : confluenceScore >= 6.0 ? "MEDIUM" : "LOW";
+
+  // 8. Precise ATR-based SL & TP Calculations
+  const lookbackAtr = Math.min(14, n);
+  let atrSum = 0;
+  for (let i = n - lookbackAtr; i < n; i++) {
+    atrSum += candles[i].high - candles[i].low;
+  }
+  const atr = Math.max(atrSum / lookbackAtr, livePrice * 0.0008);
+
   const entry = Number(livePrice.toFixed(cfg.decimals));
   let stopLoss: number;
   let takeProfit1: number;
   let takeProfit2: number;
   let takeProfit3: number;
 
+  const multiplier = tradeType === "SNIPER_ENTRY" ? 1.2 : tradeType === "SWING" ? 2.5 : 1.6;
+
   if (action === "BUY") {
-    stopLoss = Number((entry - atr * 1.5).toFixed(cfg.decimals));
+    stopLoss = Number((entry - atr * multiplier).toFixed(cfg.decimals));
     const risk = Math.max(entry - stopLoss, livePrice * 0.0005);
     takeProfit1 = Number((entry + risk * 1.8).toFixed(cfg.decimals));
     takeProfit2 = Number((entry + risk * 2.8).toFixed(cfg.decimals));
-    takeProfit3 = Number((entry + risk * 4.0).toFixed(cfg.decimals));
+    takeProfit3 = Number((entry + risk * 4.2).toFixed(cfg.decimals));
   } else {
-    stopLoss = Number((entry + atr * 1.5).toFixed(cfg.decimals));
+    stopLoss = Number((entry + atr * multiplier).toFixed(cfg.decimals));
     const risk = Math.max(stopLoss - entry, livePrice * 0.0005);
     takeProfit1 = Number((entry - risk * 1.8).toFixed(cfg.decimals));
     takeProfit2 = Number((entry - risk * 2.8).toFixed(cfg.decimals));
-    takeProfit3 = Number((entry - risk * 4.0).toFixed(cfg.decimals));
+    takeProfit3 = Number((entry - risk * 4.2).toFixed(cfg.decimals));
   }
 
   const risk = Math.abs(entry - stopLoss);
@@ -211,6 +252,8 @@ function analyzeSMC(symbol: string, candles: Candle[], livePrice: number): VipSi
     category: cfg.category,
     action,
     tradeType,
+    status,
+    isValid,
     entry,
     stopLoss,
     takeProfit1,

@@ -182,6 +182,7 @@ export default function MobileConsole() {
 
     const imageToSend = imgSrc || uploadedChartImg;
 
+    if (!imageToSend) {
       alert("Please upload a chart screenshot first.");
       setIsScanningChart(false);
       return;
@@ -199,8 +200,9 @@ export default function MobileConsole() {
         }),
       });
 
+      if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Analysis failed with status ${res.status}`);
+        throw new Error(errData.error || ("Analysis failed with status " + res.status));
       }
 
       const result: ScannerAnalysisResult = await res.json();

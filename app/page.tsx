@@ -1,6 +1,6 @@
-import VipSignalsView from "@/components/VipSignalsView";
 "use client";
 
+import VipSignalsView from "@/components/VipSignalsView";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Play,

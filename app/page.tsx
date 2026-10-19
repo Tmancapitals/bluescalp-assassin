@@ -175,107 +175,42 @@ export default function MobileConsole() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const runChartAnalysis = (imgSrc?: string | null) => {
+  const runChartAnalysis = async (imgSrc?: string | null) => {
     setIsScanningChart(true);
     setChartAnalysis(null);
     setQueueNotice(null);
 
-    setTimeout(() => {
-      const isGold = selectedScannerPair.includes("XAU");
-      const isNasdaq = selectedScannerPair.includes("NAS") || selectedScannerPair.includes("US30") || selectedScannerPair.includes("GER");
-      const isSynthetic = selectedScannerPair.includes("Crash") || selectedScannerPair.includes("Boom") || selectedScannerPair.includes("Volatility");
-      const isJPY = selectedScannerPair.includes("JPY");
+    const imageToSend = imgSrc || uploadedChartImg;
 
-      const direction: "BUY" | "SELL" = Math.random() > 0.45 ? "BUY" : "SELL";
-      const confidence = Math.floor(88 + Math.random() * 9); // 88% to 96%
-      const grade: "SNIPER A+" | "GRADE A" = confidence >= 92 ? "SNIPER A+" : "GRADE A";
+      alert("Please upload a chart screenshot first.");
+      setIsScanningChart(false);
+      return;
+    }
 
-      let basePrice = 2385.50;
-      let pipStep = 0.80;
-      let decimals = 2;
-      let pipsLabel = "25 pips";
+    try {
+      const res = await fetch("/api/scan-chart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: imageToSend,
+          pair: selectedScannerPair,
+          timeframe: selectedScannerTf,
+          engines: activeEngines,
+        }),
+      });
 
-      if (isGold) {
-        basePrice = Number((2370 + Math.random() * 35).toFixed(2));
-        pipStep = 1.20;
-        decimals = 2;
-        pipsLabel = "28 pts";
-      } else if (isNasdaq) {
-        basePrice = Number((19800 + Math.random() * 300).toFixed(1));
-        pipStep = 18.0;
-        decimals = 1;
-        pipsLabel = "35 pts";
-      } else if (isSynthetic) {
-        basePrice = Number((8200 + Math.random() * 500).toFixed(2));
-        pipStep = 12.0;
-        decimals = 2;
-        pipsLabel = "40 pts";
-      } else if (isJPY) {
-        basePrice = Number((152.0 + Math.random() * 1.5).toFixed(3));
-        pipStep = 0.15;
-        decimals = 3;
-        pipsLabel = "15 pips";
-      } else {
-        basePrice = Number((1.0820 + Math.random() * 0.0150).toFixed(5));
-        pipStep = 0.0012;
-        decimals = 5;
-        pipsLabel = "12 pips";
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Analysis failed with status ${res.status}`);
       }
 
-      const mult = direction === "BUY" ? 1 : -1;
-      const entryPrice = basePrice.toFixed(decimals);
-      const entryZone = `${(basePrice - mult * pipStep * 0.3).toFixed(decimals)} - ${(basePrice + mult * pipStep * 0.2).toFixed(decimals)}`;
-      const stopLoss = (basePrice - mult * pipStep * 1.0).toFixed(decimals);
-      const tp1 = (basePrice + mult * pipStep * 1.2).toFixed(decimals);
-      const tp2 = (basePrice + mult * pipStep * 2.4).toFixed(decimals);
-      const tp3 = (basePrice + mult * pipStep * 3.8).toFixed(decimals);
-      const tp4 = (basePrice + mult * pipStep * 5.2).toFixed(decimals);
-      const tp5 = (basePrice + mult * pipStep * 7.0).toFixed(decimals);
-
-      const agreedCount = Math.max(1, activeEngines.length - (Math.random() > 0.8 ? 1 : 0));
-      const enginesAgreed = activeEngines.slice(0, agreedCount);
-      const consensusScore = Math.round((agreedCount / activeEngines.length) * 100);
-
-      const confluences = [
-        `${selectedScannerPair} ${selectedScannerTf} • 5-Timeframe Orderflow Alignment Confirmed`,
-        direction === "BUY" 
-          ? "Previous Session Liquidity Swept below Asian Low with Bullish Reversal close"
-          : "Previous Session Liquidity Swept above Asian High with Bearish Reversal close",
-        direction === "BUY"
-          ? "Bullish Order Block (OB) mitigated & Fair Value Gap (FVG) retested"
-          : "Bearish Order Block (OB) mitigated & Fair Value Gap (FVG) retested",
-        "Tick Volume 142% above 10-period moving average filter",
-        `Institutional R:R ratio calibrated at 1:3.4 with 40% trailing equity guard`
-      ];
-
-      const result: ScannerAnalysisResult = {
-        pair: selectedScannerPair,
-        timeframe: selectedScannerTf,
-        direction,
-        grade,
-        confidence,
-        consensusScore,
-        enginesAgreed,
-        entryPrice,
-        entryZone,
-        stopLoss,
-        slPips: pipsLabel,
-        tp1,
-        tp2,
-        tp3,
-        tp4,
-        tp5,
-        riskReward: "1:3.4",
-        invalidation: (basePrice - mult * pipStep * 1.2).toFixed(decimals),
-        confluences,
-        orderType: direction === "BUY" ? "BUY LIMIT" : "SELL LIMIT",
-        timestamp: new Date().toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " SAST",
-      };
-
+      const result: ScannerAnalysisResult = await res.json();
       setChartAnalysis(result);
-      setIsScanningChart(false);
       speakAnalysisSignal(result);
-    }, 1800);
+    } catch (err: any) {
+      alert("Chart AI Scan Error: " + (err.message || "Could not read chart image"));
+    } finally {
+      setIsScanningChart(false);
+    }
   };
 
   const queueToMachineGunner = () => {

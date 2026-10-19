@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const FALLBACK_MODELS = ["gemini-3.8-flash", "gemini-3.6-flash"];
+
 export async function POST(req: NextRequest) {
   try {
     const { image, pair, timeframe, engines } = await req.json();
@@ -21,11 +23,11 @@ export async function POST(req: NextRequest) {
 Analyze this trading chart screenshot for ${pair || "the visible asset"} (${timeframe || "visible timeframe"}).
 
 CRITICAL INSTRUCTIONS:
-1. READ THE EXACT NUMERICAL VALUES from the right-hand price axis, current bid/ask quote line, and candlestick highs/lows shown in this screenshot. Do not invent numbers.
-2. Identify the current visible market price.
-3. Determine if the structure is Bullish (BUY) or Bearish (SELL) based on Break of Structure (BOS), Change of Character (CHoCH), or Fair Value Gap (FVG) retest.
-4. Calculate precise Entry price, Stop Loss, and Take Profit targets (TP1 to TP5) matching the EXACT price scale on the chart.
-5. Provide a realistic confidence score (80-97%), trade grade ("SNIPER A+" or "GRADE A"), and 3-4 institutional confluence bullet points describing exactly what is visible in this image.
+1. Examine the candlestick price action and visible price scale on the right axis.
+2. If price levels are clearly legible, calculate Entry, Stop Loss, and TP1-TP5 matching that exact scale.
+3. If the chart is blurry, unreadable, or missing clear structure, set "direction" to "WAIT" and "grade" to "NO_SETUP".
+4. Identify Break of Structure (BOS), Change of Character (CHoCH), or Fair Value Gaps (FVG).
+5. Provide realistic confluence points describing only what is actually visible.
 
 Return ONLY a valid JSON object matching this schema:
 {
@@ -33,8 +35,8 @@ Return ONLY a valid JSON object matching this schema:
   "timeframe": "${timeframe || "M5"}",
   "direction": "BUY",
   "grade": "SNIPER A+",
-  "confidence": 92,
-  "consensusScore": 95,
+  "confidence": 88,
+  "consensusScore": 90,
   "enginesAgreed": ["smc", "ict", "machine_gunner"],
   "entryPrice": "4195.50",
   "entryZone": "4193.00 - 4196.00",
@@ -48,58 +50,63 @@ Return ONLY a valid JSON object matching this schema:
   "riskReward": "1:3.2",
   "invalidation": "4185.00",
   "confluences": [
-    "Fair Value Gap (FVG) filled on visible candle",
-    "Liquidity swept above previous session high"
+    "Fair Value Gap (FVG) retest visible",
+    "Liquidity swept below recent session low"
   ],
   "orderType": "BUY LIMIT"
 }`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+    let lastError = "";
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
+    for (const model of FALLBACK_MODELS) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
               {
-                inline_data: {
-                  mime_type: mimeType,
-                  data: base64Data
-                }
+                parts: [
+                  { text: prompt },
+                  {
+                    inline_data: {
+                      mime_type: mimeType,
+                      data: base64Data
+                    }
+                  }
+                ]
               }
-            ]
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              response_mime_type: "application/json"
+            }
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const cleanJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+            const parsed = JSON.parse(cleanJson);
+            parsed.timestamp = new Date().toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " SAST";
+            if (engines && Array.isArray(engines) && engines.length > 0) {
+              parsed.enginesAgreed = engines;
+            }
+            return NextResponse.json(parsed, { status: 200 });
           }
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          response_mime_type: "application/json"
+        } else {
+          const errText = await response.text();
+          lastError = `Model ${model} returned ${response.status}: ${errText}`;
         }
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      return NextResponse.json({ error: `Gemini API error: ${errText}` }, { status: response.status });
+      } catch (e: any) {
+        lastError = `Model ${model} fetch failed: ${e.message}`;
+      }
     }
 
-    const data = await response.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!rawText) {
-      return NextResponse.json({ error: "No analysis response generated" }, { status: 500 });
-    }
-
-    const cleanJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(cleanJson);
-    parsed.timestamp = new Date().toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " SAST";
-    if (engines && Array.isArray(engines) && engines.length > 0) {
-      parsed.enginesAgreed = engines;
-    }
-
-    return NextResponse.json(parsed, { status: 200 });
+    return NextResponse.json({ error: "Scanner busy: " + lastError }, { status: 503 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Failed to analyze chart" }, { status: 500 });
   }

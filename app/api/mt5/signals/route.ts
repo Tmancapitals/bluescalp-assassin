@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateLiveSMCSignals } from "@/lib/smc-signals";
+import { getLiveSMCSignals } from "@/lib/smc-signals";
 
 export async function GET(req: NextRequest) {
-  try {
-    const licenseKey = req.headers.get("x-license-key");
-    if (!licenseKey) {
-      return NextResponse.json({ error: "Missing x-license-key header" }, { status: 401 });
-    }
+  const licenseKey = req.headers.get("x-license-key");
+  if (!licenseKey) {
+    return NextResponse.json({ error: "Missing x-license-key header" }, { status: 401 });
+  }
 
-    const liveSignals = generateLiveSMCSignals();
-    return NextResponse.json(liveSignals, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to generate signals" }, { status: 500 });
+  try {
+    const signals = await getLiveSMCSignals();
+    return NextResponse.json(signals, {
+      status: 200,
+      headers: {
+        "Cache-Control": "public, max-age=15, stale-while-revalidate=30"
+      }
+    });
+  } catch {
+    return NextResponse.json({ error: "Failed to generate live signals" }, { status: 500 });
   }
 }

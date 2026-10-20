@@ -40,6 +40,11 @@ export const metadata: Metadata = {
     type: "website",
   },
   manifest: "/manifest.json",
+  icons: {
+    icon: "/images/bluescalp-bot.jpg",
+    shortcut: "/images/bluescalp-bot.jpg",
+    apple: "/images/bluescalp-bot.jpg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -66,6 +71,9 @@ export default function RootLayout({
         <meta name="google-site-verification" content="rROBugV0lLh_DS0vYccmUA26VI1SkflgksU1Qrkemkc" />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://bluescalp-assassin.vercel.app/" />
+        <link rel="icon" type="image/jpeg" href="/images/bluescalp-bot.jpg" />
+        <link rel="shortcut icon" href="/images/bluescalp-bot.jpg" />
+        <link rel="apple-touch-icon" href="/images/bluescalp-bot.jpg" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

@@ -1101,7 +1101,6 @@ TP: ${trade.takeProfit1}`
             {/* ANALYSIS RESULT HUD */}
             {/* METHODOLOGY SWITCHER */}
             
-            </div>
 
             {/* ENHANCED ANALYSIS RESULT HUD */}
             {chartAnalysis && !isScanningChart && (

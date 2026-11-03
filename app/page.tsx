@@ -1,5 +1,6 @@
-import EnhancedScannerView, { AdvancedAnalysisResult } from "@/components/EnhancedScannerView";
 "use client";
+
+import EnhancedScannerView, { AdvancedAnalysisResult } from "@/components/EnhancedScannerView";
 
 import VipSignalsView from "@/components/VipSignalsView";
 import React, { useState, useEffect, useRef } from "react";

@@ -62,7 +62,7 @@ Respond ONLY with valid JSON matching this exact structure:
   "summary": "Clear liquidity sweep followed by MSS with displacement into discount OB."
 }`;
 
-    let lastError = "No models attempted";
+        const attempts: { model: string; status: number; message: string }[] = [];
 
     for (const model of CANDIDATE_MODELS) {
       try {
@@ -93,14 +93,19 @@ Respond ONLY with valid JSON matching this exact structure:
 
         if (!response.ok) {
           const errText = await response.text();
-          lastError = `Model ${model} returned ${response.status}: ${errText}`;
+          let parsedMsg = errText;
+          try {
+            const ej = JSON.parse(errText);
+            parsedMsg = ej?.error?.message || errText;
+          } catch {}
+          attempts.push({ model, status: response.status, message: parsedMsg });
           continue;
         }
 
         const data = await response.json();
         const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!rawText) {
-          lastError = `Model ${model} returned empty response`;
+          attempts.push({ model, status: 200, message: "Empty response text" });
           continue;
         }
 
@@ -114,11 +119,30 @@ Respond ONLY with valid JSON matching this exact structure:
           timestamp: new Date().toISOString(),
         });
       } catch (err: any) {
-        lastError = err?.message || String(err);
+        attempts.push({ model, status: 500, message: err?.message || String(err) });
       }
     }
 
-    return NextResponse.json({ error: `Gemini API error: ${lastError}` }, { status: 502 });
+    // If all failed, check what models this API key actually supports
+    let availableModels: string[] = [];
+    try {
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      if (listRes.ok) {
+        const listData = await listRes.json();
+        availableModels = (listData?.models || [])
+          .filter((m: any) => m?.supportedGenerationMethods?.includes("generateContent"))
+          .map((m: any) => m?.name?.replace("models/", ""));
+      }
+    } catch {}
+
+    return NextResponse.json(
+      {
+        error: "All Gemini vision models failed",
+        attempts,
+        supportedModelsForKey: availableModels.slice(0, 8),
+      },
+      { status: 502 }
+    );
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "Internal server error" }, { status: 500 });
   }

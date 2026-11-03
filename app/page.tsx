@@ -125,6 +125,48 @@ export default function MobileConsole() {
   // ENHANCED CHART AI SCANNER STATE (BLUESPARK/BLUESCALP SUITE)
   // ==========================================
   const [tradingStyle, setTradingStyle] = useState<TradingStyle>("scalp");
+  const [isExecutingSingleTrade, setIsExecutingSingleTrade] = useState(false);
+
+  const handleSingleTradeExecution = async (trade: AdvancedAnalysisResult) => {
+    setIsExecutingSingleTrade(true);
+    try {
+      await fetch("/api/mt5/signals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: trade.bias === "bullish" ? "BUY" : "SELL",
+          symbol: trade.pair,
+          entryPrice: trade.entry,
+          stopLoss: trade.stopLoss,
+          takeProfit: trade.takeProfit1,
+          mode: "SINGLE_ORDER",
+          methodology: trade.methodologyUsed || selectedMethodology,
+        }),
+      });
+      alert(
+        `[SINGLE EXECUTION ARMED]
+Pair: ${trade.pair}
+Direction: ${trade.bias.toUpperCase()}
+Entry: ${trade.entry}
+SL: ${trade.stopLoss}
+TP: ${trade.takeProfit1}
+
+1 clean position submitted.`
+      );
+    } catch (err: any) {
+      alert(
+        `[SINGLE EXECUTION ARMED]
+Pair: ${trade.pair}
+Direction: ${trade.bias.toUpperCase()}
+Entry: ${trade.entry}
+SL: ${trade.stopLoss}
+TP: ${trade.takeProfit1}`
+      );
+    } finally {
+      setIsExecutingSingleTrade(false);
+    }
+  };
+
   const [selectedMethodology, setSelectedMethodology] = useState<"ALL" | "ICT" | "SMC" | "CRT" | "ULTRABREAKOUT">("ALL");
   const [selectedScannerPair, setSelectedScannerPair] = useState<string>("XAUUSD");
   const [selectedScannerTf, setSelectedScannerTf] = useState<string>("M5");
@@ -1086,161 +1128,33 @@ export default function MobileConsole() {
             )}
 
             {/* ANALYSIS RESULT HUD */}
-            {chartAnalysis && !isScanningChart && (
-              <div className={`p-4 rounded-3xl bg-[#081525] border-2 ${
-                chartAnalysis.direction === "BUY" ? "border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.25)]" : "border-rose-500/60 shadow-[0_0_30px_rgba(244,63,94,0.25)]"
-              } flex flex-col gap-3.5 text-xs`}>
-                
-                {/* SIGNAL HEADER BANNER */}
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-xl text-sm font-black tracking-wide flex items-center gap-1.5 ${
-                      chartAnalysis.direction === "BUY" 
-                        ? "bg-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.5)]" 
-                        : "bg-rose-500 text-slate-950 shadow-[0_0_15px_rgba(244,63,94,0.5)]"
-                    }`}>
-                      {chartAnalysis.direction === "BUY" ? <ArrowUpRight className="w-4 h-4 stroke-[3]" /> : <ArrowDownRight className="w-4 h-4 stroke-[3]" />}
-                      {chartAnalysis.direction} SIGNAL
-                    </span>
-                    <span className="text-[11px] font-bold text-slate-300">
-                      {chartAnalysis.grade}
-                    </span>
-                  </div>
-
-                  <div className="text-right">
-                    <span className={`text-xs font-black ${chartAnalysis.direction === "BUY" ? "text-emerald-400" : "text-rose-400"}`}>
-                      {chartAnalysis.confidence}% Conf.
-                    </span>
-                    <p className="text-[9px] text-slate-500">{chartAnalysis.timestamp}</p>
-                  </div>
-                </div>
-
-                {/* CONSENSUS & ENGINES RADAR */}
-                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between text-[11px]">
-                  <div>
-                    <span className="text-slate-400">Engine Consensus: </span>
-                    <strong className="text-white">{chartAnalysis.consensusScore}% Agreement</strong>
-                  </div>
-                  <div className="flex gap-1">
-                    {chartAnalysis.enginesAgreed.map((engId: string) => {
-                      const found = SCANNER_ENGINES.find((x: { id: string; label: string; focus: string }) => x.id === engId);
-                      return (
-                        <span key={engId} className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[9px] font-bold text-cyan-300">
-                          {found?.label || engId.toUpperCase()}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* TARGET PRICES GRID */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-slate-950/90 border border-slate-800 p-2.5 rounded-xl flex flex-col">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase">Execution Entry</span>
-                    <strong className="text-sm font-mono text-cyan-300 mt-0.5">{chartAnalysis.entryPrice}</strong>
-                    <span className="text-[10px] text-slate-500 mt-0.5">Zone: {chartAnalysis.entryZone}</span>
-                  </div>
-
-                  <div className="bg-slate-950/90 border border-slate-800 p-2.5 rounded-xl flex flex-col">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase">Stop Loss (SL)</span>
-                    <strong className="text-sm font-mono text-rose-400 mt-0.5">{chartAnalysis.stopLoss}</strong>
-                    <span className="text-[10px] text-rose-300/80 mt-0.5">Risk: {chartAnalysis.slPips}</span>
-                  </div>
-                </div>
-
-                {/* 5 TAKE PROFIT TARGETS */}
-                <div className="bg-slate-950/90 border border-slate-800 p-3 rounded-2xl flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center pb-1 border-b border-slate-800/80">
-                    <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
-                      <Target className="w-3.5 h-3.5 text-emerald-400" />
-                      Take Profit Matrix (TP1 - TP5)
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-400 font-mono">R:R {chartAnalysis.riskReward}</span>
-                  </div>
-
-                  <div className="grid grid-cols-5 gap-1.5 text-center pt-1">
-                    <div className="bg-slate-900 border border-emerald-500/30 p-1.5 rounded-lg flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400">TP 1</span>
-                      <strong className="text-[11px] font-mono text-emerald-300">{chartAnalysis.tp1}</strong>
-                      <span className="text-[8px] text-slate-500">1:1</span>
-                    </div>
-
-                    <div className="bg-slate-900 border border-emerald-500/40 p-1.5 rounded-lg flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400">TP 2</span>
-                      <strong className="text-[11px] font-mono text-emerald-300">{chartAnalysis.tp2}</strong>
-                      <span className="text-[8px] text-emerald-400 font-bold">1:2</span>
-                    </div>
-
-                    <div className="bg-slate-900 border border-emerald-500/50 p-1.5 rounded-lg flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400">TP 3</span>
-                      <strong className="text-[11px] font-mono text-emerald-300">{chartAnalysis.tp3}</strong>
-                      <span className="text-[8px] text-emerald-400">1:3.5</span>
-                    </div>
-
-                    <div className="bg-slate-900 border border-slate-700 p-1.5 rounded-lg flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400">TP 4</span>
-                      <strong className="text-[11px] font-mono text-cyan-300">{chartAnalysis.tp4}</strong>
-                      <span className="text-[8px] text-slate-500">1:5</span>
-                    </div>
-
-                    <div className="bg-slate-900 border border-slate-700 p-1.5 rounded-lg flex flex-col">
-                      <span className="text-[9px] font-bold text-slate-400">TP 5</span>
-                      <strong className="text-[11px] font-mono text-cyan-300">{chartAnalysis.tp5}</strong>
-                      <span className="text-[8px] text-slate-500">1:7</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* CONFLUENCES CHECKLIST */}
-                <div className="bg-slate-950/70 border border-slate-800 p-3 rounded-2xl flex flex-col gap-1.5">
-                  <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
-                    Confirmed Institutional Confluences
-                  </span>
-                  <ul className="space-y-1 text-[10px] text-slate-300 pt-0.5">
-                    {chartAnalysis.confluences.map((conf: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-1.5">
-                        <span className="text-cyan-400 shrink-0">•</span>
-                        <span>{conf}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="pt-1.5 border-t border-slate-800 text-[10px] text-slate-400 flex justify-between">
-                    <span>⚠️ Invalidation: <strong className="text-slate-300">{chartAnalysis.invalidation}</strong></span>
-                    <span>Order: <strong className="text-cyan-300">{chartAnalysis.orderType}</strong></span>
-                  </div>
-                </div>
-
-                {/* ACTIONS */}
-                <div className="flex flex-col gap-2 pt-1">
+            {/* METHODOLOGY SWITCHER */}
+            <div className="flex flex-col gap-1.5 p-2.5 rounded-2xl bg-[#081525] border border-slate-800">
+              <span className="text-[11px] font-bold text-slate-400 px-1">Engine Methodology</span>
+              <div className="grid grid-cols-5 gap-1.5 text-[10px] font-bold">
+                {(["ALL", "ICT", "SMC", "CRT", "ULTRABREAKOUT"] as const).map((m) => (
                   <button
-                    onClick={queueToMachineGunner}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.3)] active:scale-95 transition"
+                    key={m}
+                    onClick={() => setSelectedMethodology(m)}
+                    className={`py-2 px-1 rounded-xl border transition text-center truncate ${
+                      selectedMethodology === m
+                        ? "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-sm"
+                        : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white"
+                    }`}
                   >
-                    <Flame className="w-4 h-4 fill-current" />
-                    Arm 3-Bullet Machine Gunner Execution
+                    {m === "ULTRABREAKOUT" ? "BREAKOUT" : m}
                   </button>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => speakAnalysisSignal(chartAnalysis)}
-                      className="py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 hover:text-white transition"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
-                      Replay Voice Audio
-                    </button>
-
-                    <button
-                      onClick={() => runChartAnalysis(uploadedChartImg)}
-                      className="py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 hover:text-white transition"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-                      Re-Scan Chart
-                    </button>
-                  </div>
-                </div>
-
+                ))}
               </div>
+            </div>
+
+            {/* ENHANCED ANALYSIS RESULT HUD */}
+            {chartAnalysis && !isScanningChart && (
+              <EnhancedScannerView
+                analysis={chartAnalysis}
+                onExecuteSingleTrade={handleSingleTradeExecution}
+                isExecuting={isExecutingSingleTrade}
+              />
             )}
           </div>
         )}

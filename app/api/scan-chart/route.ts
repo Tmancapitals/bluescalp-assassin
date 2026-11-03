@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs";
 
 const CANDIDATE_MODELS = [
   "gemini-2.5-flash",

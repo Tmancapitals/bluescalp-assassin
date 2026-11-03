@@ -1,5 +1,7 @@
 "use client";
 
+import MarketPairSelector from "@/components/MarketPairSelector";
+
 import EnhancedScannerView, { AdvancedAnalysisResult } from "@/components/EnhancedScannerView";
 
 import VipSignalsView from "@/components/VipSignalsView";
@@ -944,10 +946,10 @@ TP: ${trade.takeProfit1}`
             {/* PAIR & TIMEFRAME SELECTOR */}
             <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-3 flex flex-col gap-2.5`}>
               <MarketPairSelector
-            selectedPair={selectedPair}
-            onSelectPair={setSelectedPair}
-            selectedTimeframe={selectedTimeframe}
-            onSelectTimeframe={setSelectedTimeframe}
+            selectedPair={selectedScannerPair}
+            onSelectPair={setSelectedScannerPair}
+            selectedTimeframe={selectedScannerTf}
+            onSelectTimeframe={setSelectedScannerTf}
           />
 
               {/* TIMEFRAME PILLS */}

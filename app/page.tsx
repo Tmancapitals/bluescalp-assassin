@@ -943,32 +943,12 @@ TP: ${trade.takeProfit1}`
 
             {/* PAIR & TIMEFRAME SELECTOR */}
             <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-3 flex flex-col gap-2.5`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <Target className={`w-3.5 h-3.5 ${theme.accentText}`} />
-                  Instrument & Asset
-                </span>
-                <span className={`text-[11px] font-mono font-bold ${theme.accentText} bg-slate-900 px-2 py-0.5 rounded border border-slate-800`}>
-                  {selectedScannerPair}
-                </span>
-              </div>
-
-              {/* QUICK PAIR PILLS */}
-              <div className="flex flex-wrap gap-1.5">
-                {SCANNER_POPULAR_PAIRS.map((pair: string) => (
-                  <button
-                    key={pair}
-                    onClick={() => setSelectedScannerPair(pair)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition border ${
-                      selectedScannerPair === pair
-                        ? `${theme.buttonBg} border-white shadow-sm`
-                        : "bg-slate-900 border-slate-700/80 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    {pair}
-                  </button>
-                ))}
-              </div>
+              <MarketPairSelector
+            selectedPair={selectedPair}
+            onSelectPair={setSelectedPair}
+            selectedTimeframe={selectedTimeframe}
+            onSelectTimeframe={setSelectedTimeframe}
+          />
 
               {/* TIMEFRAME PILLS */}
               <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1">
@@ -1120,23 +1100,7 @@ TP: ${trade.takeProfit1}`
 
             {/* ANALYSIS RESULT HUD */}
             {/* METHODOLOGY SWITCHER */}
-            <div className="flex flex-col gap-1.5 p-2.5 rounded-2xl bg-[#081525] border border-slate-800">
-              <span className="text-[11px] font-bold text-slate-400 px-1">Engine Methodology</span>
-              <div className="grid grid-cols-5 gap-1.5 text-[10px] font-bold">
-                {(["ALL", "ICT", "SMC", "CRT", "ULTRABREAKOUT"] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setSelectedMethodology(m)}
-                    className={`py-2 px-1 rounded-xl border transition text-center truncate ${
-                      selectedMethodology === m
-                        ? "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-sm"
-                        : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    {m === "ULTRABREAKOUT" ? "BREAKOUT" : m}
-                  </button>
-                ))}
-              </div>
+            
             </div>
 
             {/* ENHANCED ANALYSIS RESULT HUD */}

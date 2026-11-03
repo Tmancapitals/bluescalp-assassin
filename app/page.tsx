@@ -946,40 +946,17 @@ TP: ${trade.takeProfit1}`
             {/* PAIR & TIMEFRAME SELECTOR */}
             <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-3 flex flex-col gap-2.5`}>
               <MarketPairSelector
-            selectedPair={selectedScannerPair}
-            onSelectPair={setSelectedScannerPair}
-            selectedTimeframe={selectedScannerTf}
-            onSelectTimeframe={setSelectedScannerTf}
-          />
-
-              {/* TIMEFRAME PILLS */}
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1">
-                <span className="text-[11px] font-semibold text-slate-400">TF:</span>
-                <div className="flex gap-1 flex-1 justify-end">
-                  {["AUTO", "M1", "M5", "M15", "H1", "H4", "D1"].map(tf => (
-                    <button
-                      key={tf}
-                      onClick={() => setSelectedScannerTf(tf)}
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition ${
-                        selectedScannerTf === tf
-                          ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
-                          : "bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300"
-                      }`}
-                    >
-                      {tf}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                selectedPair={selectedScannerPair}
+                onSelectPair={setSelectedScannerPair}
+                selectedTimeframe={selectedScannerTf}
+                onSelectTimeframe={setSelectedScannerTf}
+              />
             </div>
 
-            {/* TRADING ENGINES SELECTOR (MULTI-ENGINE) */}
-            <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-3 flex flex-col gap-2`}>
-              {/* METHODOLOGY SWITCHER */}
+            {/* STRATEGY SWITCHER */}
             <div className="flex flex-col gap-2 p-3 rounded-2xl bg-[#081525] border border-slate-800">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-300">STRATEGY</span>
-                
               </div>
               <div className="grid grid-cols-5 gap-1.5 text-xs font-bold">
                 {(["ALL", "ICT", "SMC", "CRT", "ULTRABREAKOUT"] as const).map((m) => (
@@ -996,7 +973,6 @@ TP: ${trade.takeProfit1}`
                   </button>
                 ))}
               </div>
-            </div>
             </div>
 
             {/* HIDDEN FILE INPUT */}

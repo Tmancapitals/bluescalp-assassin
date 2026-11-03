@@ -2,12 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 
 const CANDIDATE_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
-  "gemini-1.5-flash-latest",
   "gemini-1.5-flash",
-  "gemini-1.5-pro",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash-8b",
 ];
 
 export async function POST(req: NextRequest) {
@@ -79,8 +76,8 @@ Respond ONLY with valid JSON matching this exact structure:
                 parts: [
                   { text: prompt },
                   {
-                    inline_data: {
-                      mime_type: mimeType,
+                    inlineData: {
+                      mimeType: mimeType,
                       data: cleanBase64,
                     },
                   },
@@ -89,7 +86,7 @@ Respond ONLY with valid JSON matching this exact structure:
             ],
             generationConfig: {
               temperature: 0.1,
-              response_mime_type: "application/json",
+              responseMimeType: "application/json",
             },
           }),
         });

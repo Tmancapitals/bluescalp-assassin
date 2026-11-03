@@ -174,7 +174,7 @@ TP: ${trade.takeProfit1}`
   const [activeEngines, setActiveEngines] = useState<string[]>(["smc", "ict", "machine_gunner"]);
   const [uploadedChartImg, setUploadedChartImg] = useState<string | null>(null);
   const [isScanningChart, setIsScanningChart] = useState<boolean>(false);
-  const [chartAnalysis, setChartAnalysis] = useState<ScannerAnalysisResult | null>(null);
+  const [chartAnalysis, setChartAnalysis] = useState<AdvancedAnalysisResult | any | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
   const [showTuningModal, setShowTuningModal] = useState<boolean>(false);
   const [tuningConfig, setTuningConfig] = useState({
@@ -210,7 +210,7 @@ TP: ${trade.takeProfit1}`
     reader.readAsDataURL(file);
   };
 
-  const speakAnalysisSignal = (res: ScannerAnalysisResult) => {
+  const speakAnalysisSignal = (res: any) => {
     if (!voiceEnabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const text = `BlueScalp Assassin markup. ${res.grade} ${res.direction} detected on ${res.pair}. Entry at ${res.entryPrice}. Stop Loss at ${res.stopLoss}. Take Profit 1 at ${res.tp1}. Take Profit 2 at ${res.tp2}. Estimated risk to reward ratio ${res.riskReward}.`;
@@ -993,38 +993,28 @@ TP: ${trade.takeProfit1}`
 
             {/* TRADING ENGINES SELECTOR (MULTI-ENGINE) */}
             <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-3 flex flex-col gap-2`}>
+              {/* METHODOLOGY SWITCHER */}
+            <div className="flex flex-col gap-2 p-3 rounded-2xl bg-[#081525] border border-slate-800">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <Cpu className={`w-3.5 h-3.5 ${theme.accentText}`} />
-                  Active AI Engines ({activeEngines.length}/10 Active)
-                </span>
-                <span className="text-[10px] text-slate-400">Tap to toggle</span>
+                <span className="text-xs font-bold text-slate-300">Analysis Methodology</span>
+                <span className="text-[10px] text-cyan-400 font-mono">Single Clean Order</span>
               </div>
-
-              <div className="grid grid-cols-2 gap-1.5">
-                {SCANNER_ENGINES.map((eng: { id: string; label: string; focus: string }) => {
-                  const isActive = activeEngines.includes(eng.id);
-                  return (
-                    <button
-                      key={eng.id}
-                      onClick={() => toggleEngine(eng.id)}
-                      className={`p-2 rounded-xl border text-left transition flex flex-col gap-0.5 ${
-                        isActive
-                          ? "bg-slate-900/90 border-cyan-500/60 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-                          : "bg-slate-950/60 border-slate-800 text-slate-500 opacity-60 hover:opacity-100"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs font-bold ${isActive ? "text-cyan-300" : "text-slate-400"}`}>
-                          {eng.label}
-                        </span>
-                        <span className={`w-2 h-2 rounded-full ${isActive ? "bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)]" : "bg-slate-700"}`} />
-                      </div>
-                      <span className="text-[9px] text-slate-400 line-clamp-1">{eng.focus}</span>
-                    </button>
-                  );
-                })}
+              <div className="grid grid-cols-5 gap-1.5 text-xs font-bold">
+                {(["ALL", "ICT", "SMC", "CRT", "ULTRABREAKOUT"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setSelectedMethodology(m)}
+                    className={`py-2 px-1 rounded-xl border transition text-center truncate ${
+                      selectedMethodology === m
+                        ? "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+                        : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {m === "ULTRABREAKOUT" ? "BREAKOUT" : m}
+                  </button>
+                ))}
               </div>
+            </div>
             </div>
 
             {/* HIDDEN FILE INPUT */}

@@ -1,92 +1,129 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
+const CANDIDATE_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+];
+
 export async function POST(req: NextRequest) {
   try {
-    const { image, pair, methodology = "ALL" } = await req.json();
+    const body = await req.json();
+    const { imageBase64, mimeType = "image/jpeg", methodology = "ALL" } = body;
 
-    if (!image) {
-      return NextResponse.json({ error: "No chart image provided" }, { status: 400 });
+    if (!imageBase64) {
+      return NextResponse.json({ error: "Missing imageBase64 payload" }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "GEMINI_API_KEY is not configured on Vercel" }, { status: 500 });
+      return NextResponse.json({ error: "GEMINI_API_KEY not configured on server" }, { status: 500 });
     }
 
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+    const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, "");
 
-    const prompt = `You are a professional institutional chart analyst and Smart Money Concepts expert.
-Analyze this trading chart screenshot thoroughly using the selected methodology: "${methodology}".
+    const prompt = `You are a world-class institutional algorithmic price action analyst (ICT, SMC, CRT, UltraBreakout).
+Analyze this financial candlestick chart screenshot using the '${methodology}' methodology.
 
-Supported methodology focus:
-- ALL: Full confluence combining SMC, ICT, and key market structure breakouts.
-- ICT: Liquidity sweeps (BSL/SSL), Fair Value Gaps (FVG), killzones, and optimal trade entries (OTE).
-- SMC: Order Blocks (OB), Break of Structure (BOS), Change of Character (CHoCH), and displacement.
-- CRT: Candle Range Theory (previous candle high/low sweeps and range expansions).
-- ULTRABREAKOUT: Momentum expansion breaks with clean retests.
+Requirements:
+1. Directional Bias: exactly 'BUY', 'SELL', or 'WAIT'.
+2. Quality Grade: 'A+', 'A', 'B', or 'C'.
+3. Confidence Score: integer between 50 and 99.
+4. Exact numeric levels:
+   - entry: immediate price level or limit pull-back
+   - stopLoss: structural invalidation level
+   - takeProfit1: conservative level (1:1.5 RR)
+   - takeProfit2: runner level (1:3 RR)
+   - takeProfit3: major liquidity pool
+   - riskReward: string like '1:2.4'
+5. Methodology Findings:
+   - orderBlocks: specific price zone detected or 'None'
+   - fvgZones: specific imbalance zone detected or 'None'
+   - liquiditySweeps: swept level description or 'None'
+   - keyLevel: nearest key support or resistance
+6. Concise Reasoning: 2-3 sentences explaining market structure.
 
-Execution policy:
-Single high-conviction order only. Do not advise multi-position bursts or machine-gun entries.
-
-Return ONLY a valid, raw JSON object (no markdown, no backticks, no explanations) with this exact schema:
+Respond ONLY with valid JSON matching this exact structure:
 {
-  "pair": "${pair || 'DETECTED_SYMBOL'}",
-  "timeframe": "M1 or M5 or H1 etc.",
-  "bias": "bullish" | "bearish" | "neutral",
-  "confidenceScore": 85,
+  "bias": "BUY" | "SELL" | "WAIT",
   "confidenceGrade": "A+" | "A" | "B" | "C",
-  "methodologyUsed": "${methodology}",
-  "entry": 0.0000,
-  "stopLoss": 0.0000,
-  "takeProfit1": 0.0000,
-  "takeProfit2": 0.0000,
-  "takeProfit3": 0.0000,
-  "riskReward": "1:2.5",
-  "rationale": "Clear 2-sentence summary of why this setup formed.",
-  "patterns": {
-    "orderBlock": "Price zone and whether it was tapped or mitigated",
-    "fairValueGap": "Upper and lower boundary of the active FVG",
-    "liquiditySweep": "Specific high or low swept prior to entry"
-  }
+  "confidenceScore": 88,
+  "entry": 2735.40,
+  "stopLoss": 2728.10,
+  "takeProfit1": 2746.30,
+  "takeProfit2": 2758.00,
+  "takeProfit3": 2772.50,
+  "riskReward": "1:2.4",
+  "orderBlocks": "H1 Bullish OB at 2732.00",
+  "fvgZones": "M15 Fair Value Gap at 2734.50",
+  "liquiditySweeps": "Asian session low swept at 2729.00",
+  "keyLevel": "Previous Day Low (PDL) rejection",
+  "summary": "Clear liquidity sweep followed by MSS with displacement into discount OB."
 }`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    let lastError = "No models attempted";
 
-    const response = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
+    for (const model of CANDIDATE_MODELS) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
               {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: base64Data,
-                },
+                parts: [
+                  { text: prompt },
+                  {
+                    inline_data: {
+                      mime_type: mimeType,
+                      data: cleanBase64,
+                    },
+                  },
+                ],
               },
             ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          response_mime_type: "application/json",
-        },
-      }),
-    });
+            generationConfig: {
+              temperature: 0.1,
+              response_mime_type: "application/json",
+            },
+          }),
+        });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return NextResponse.json({ error: `Gemini API error: ${response.status}`, details: errText }, { status: 502 });
+        if (!response.ok) {
+          const errText = await response.text();
+          lastError = `Model ${model} returned ${response.status}: ${errText}`;
+          continue;
+        }
+
+        const data = await response.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) {
+          lastError = `Model ${model} returned empty response`;
+          continue;
+        }
+
+        const cleaned = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(cleaned);
+
+        return NextResponse.json({
+          ...parsed,
+          modelUsed: model,
+          methodology,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err: any) {
+        lastError = err?.message || String(err);
+      }
     }
 
-    const data = await response.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    const parsed = JSON.parse(rawText.replace(/```json/g, "").replace(/```/g, "").trim());
-
-    return NextResponse.json({ success: true, analysis: parsed });
+    return NextResponse.json({ error: `Gemini API error: ${lastError}` }, { status: 502 });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || "Failed to analyze chart" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Internal server error" }, { status: 500 });
   }
 }

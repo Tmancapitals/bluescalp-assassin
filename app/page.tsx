@@ -1,3 +1,4 @@
+import EnhancedScannerView, { AdvancedAnalysisResult } from "@/components/EnhancedScannerView";
 "use client";
 
 import VipSignalsView from "@/components/VipSignalsView";
@@ -124,6 +125,7 @@ export default function MobileConsole() {
   // ENHANCED CHART AI SCANNER STATE (BLUESPARK/BLUESCALP SUITE)
   // ==========================================
   const [tradingStyle, setTradingStyle] = useState<TradingStyle>("scalp");
+  const [selectedMethodology, setSelectedMethodology] = useState<"ALL" | "ICT" | "SMC" | "CRT" | "ULTRABREAKOUT">("ALL");
   const [selectedScannerPair, setSelectedScannerPair] = useState<string>("XAUUSD");
   const [selectedScannerTf, setSelectedScannerTf] = useState<string>("M5");
   const [activeEngines, setActiveEngines] = useState<string[]>(["smc", "ict", "machine_gunner"]);
@@ -195,6 +197,7 @@ export default function MobileConsole() {
         body: JSON.stringify({
           image: imageToSend,
           pair: selectedScannerPair,
+          methodology: selectedMethodology,
           timeframe: selectedScannerTf,
           engines: activeEngines,
         }),
@@ -205,7 +208,8 @@ export default function MobileConsole() {
         throw new Error(errData.error || ("Analysis failed with status " + res.status));
       }
 
-      const result: ScannerAnalysisResult = await res.json();
+      const data = await res.json();
+      const result = (data.analysis || data) as any;
       setChartAnalysis(result);
       speakAnalysisSignal(result);
     } catch (err: any) {

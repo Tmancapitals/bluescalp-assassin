@@ -240,7 +240,7 @@ TP: ${trade.takeProfit1}`
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          image: imageToSend,
+          imageBase64: imageToSend,
           pair: selectedScannerPair,
           methodology: selectedMethodology,
           timeframe: selectedScannerTf,
@@ -978,8 +978,8 @@ TP: ${trade.takeProfit1}`
               {/* METHODOLOGY SWITCHER */}
             <div className="flex flex-col gap-2 p-3 rounded-2xl bg-[#081525] border border-slate-800">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300">Analysis Methodology</span>
-                <span className="text-[10px] text-cyan-400 font-mono">Single Clean Order</span>
+                <span className="text-xs font-bold text-slate-300">STRATEGY</span>
+                
               </div>
               <div className="grid grid-cols-5 gap-1.5 text-xs font-bold">
                 {(["ALL", "ICT", "SMC", "CRT", "ULTRABREAKOUT"] as const).map((m) => (

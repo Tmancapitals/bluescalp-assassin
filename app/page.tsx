@@ -106,6 +106,13 @@ const SCANNER_ENGINES: { id: string; label: string; focus: string }[] = [
 
 export default function MobileConsole() {
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Auto-dismiss welcome splash after 2.2 seconds (or click to skip)
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 2200);
+    return () => clearTimeout(timer);
+  }, []);
   const [licenseInput, setLicenseInput] = useState("");
   const [activeKey, setActiveKey] = useState("");
   const [clientInfo, setClientInfo] = useState<{ clientName: string; expiresAt: string } | null>(null);
@@ -522,6 +529,40 @@ TP: ${trade.takeProfit1}`
   };
 
   // 1. Lock Screen
+  if (showSplash) {
+    return (
+      <div
+        onClick={() => setShowSplash(false)}
+        className="fixed inset-0 z-50 bg-[#050608] text-slate-100 flex flex-col justify-between items-center p-8 select-none cursor-pointer transition-opacity duration-500"
+      >
+        {/* Top-right menu icon matching reference */}
+        <div className="w-full flex justify-end pt-4">
+          <div className="w-9 h-9 rounded-full border border-slate-700/60 bg-slate-900/40 flex items-center justify-center text-slate-400">
+            <span className="text-sm font-sans">•••</span>
+          </div>
+        </div>
+
+        {/* Centered Welcome Header matching reference */}
+        <div className="text-center flex flex-col items-center gap-3">
+          <p className="text-xs uppercase tracking-[0.45em] text-slate-400/90 font-medium">
+            WELCOME BACK
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-[0.06em] text-slate-100 uppercase drop-shadow-[0_2px_15px_rgba(255,255,255,0.12)]">
+            BLUESCALP ASSASSIN <span className="text-cyan-400">EA</span>
+          </h1>
+          <div className="w-8 h-0.5 bg-cyan-500/40 rounded-full mt-2" />
+        </div>
+
+        {/* Bottom subtle indicator */}
+        <div className="pb-6 text-center">
+          <p className="text-[10px] tracking-[0.25em] text-slate-500 uppercase font-mono animate-pulse">
+            TAP ANYWHERE TO ENTER
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isUnlocked) {
     return (
       <div className={`min-h-screen bg-[#030811] text-slate-100 flex items-center justify-center p-4 select-none ${getFontClass()}`}>

@@ -15,6 +15,8 @@ import {
   Activity,
   Home,
   Sliders,
+  Calendar,
+  Menu,
   ShieldCheck,
   Zap,
   Upload,
@@ -58,7 +60,8 @@ const ALLOWED_BROKERS = [
   { id: "justmarkets", name: "JustMarkets", servers: ["JustMarkets-Live", "JustMarkets-Live2"] },
 ];
 
-type ThemeColor = "cyan" | "emerald" | "amber" | "crimson" | "purple";
+type HomeStyle = "classic" | "premium" | "commander";
+type ThemeColor = "cyan" | "emerald" | "amber" | "crimson" | "purple" | "blood" | "matrix" | "royal" | "phantom" | "inferno" | "rose" | "stealth";
 type BotShape = "rectangle" | "circle";
 type FontFamily = "sans" | "mono" | "tech";
 type TradingStyle = "scalp" | "intraday" | "swing";
@@ -125,6 +128,8 @@ export default function MobileConsole() {
   const [modalOpen, setModalOpen] = useState<"connect" | "status" | null>(null);
 
   // Appearance & Customization Settings
+  const [homeStyle, setHomeStyle] = useState<HomeStyle>("commander");
+  const [autoTrade, setAutoTrade] = useState(false);
   const [botShape, setBotShape] = useState<BotShape>("rectangle");
   const [themeColor, setThemeColor] = useState<ThemeColor>("cyan");
   const [fontFamily, setFontFamily] = useState<FontFamily>("sans");
@@ -310,6 +315,11 @@ TP: ${trade.takeProfit1}`
       setIsUnlocked(true);
       verifyKeyWithDatabase(saved, true);
     }
+
+    const savedHomeStyle = localStorage.getItem("bsa_home_style") as HomeStyle;
+    if (savedHomeStyle) setHomeStyle(savedHomeStyle);
+    const savedAutoTrade = localStorage.getItem("bsa_autotrade");
+    if (savedAutoTrade !== null) setAutoTrade(savedAutoTrade === "true");
 
     const savedShape = localStorage.getItem("bsa_shape") as BotShape;
     if (savedShape) setBotShape(savedShape);
@@ -676,6 +686,148 @@ TP: ${trade.takeProfit1}`
         {/* VIEW 1: HOME TAB */}
         {activeTab === "home" && (
           <>
+            {homeStyle === "commander" ? (
+              /* =================================================================
+                 COMMANDER LAYOUT: PORTRAIT & CARDS (REFERENCE UI)
+                 ================================================================= */
+              <div className="flex flex-col items-center w-full gap-4 pt-1">
+                {/* Top Bar with Menu Hamburger */}
+                <div className="w-full flex items-center justify-end">
+                  <button
+                    onClick={() => setActiveTab("settings")}
+                    className="w-10 h-10 rounded-full border border-cyan-500/30 bg-slate-900/80 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] active:scale-95 transition"
+                  >
+                    <Menu className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Big Circular Avatar with Glowing Halo */}
+                <div className="relative w-44 h-44 rounded-full p-1 border-2 border-cyan-400/80 shadow-[0_0_35px_rgba(6,182,212,0.45)] bg-[#051322] flex items-center justify-center overflow-hidden">
+                  <img
+                    src="/images/bluescalp-bot.jpg"
+                    alt="BlueScalp Assassin"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                  <div className="absolute inset-0 rounded-full border border-cyan-300/40 pointer-events-none" />
+                </div>
+
+                {/* Big Centered Title & User Handle */}
+                <div className="text-center flex flex-col items-center">
+                  <h1 className="text-2xl font-black text-white tracking-wide uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                    BLUESCALP ASSASSIN EA
+                  </h1>
+                  <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                    {clientInfo?.clientName ? clientInfo.clientName : "Thabang Seake"}
+                  </p>
+                </div>
+
+                {/* Floating Action Pill Bar: NEWS | TRADE | SCAN */}
+                <div className="w-full max-w-sm rounded-[24px] border-2 border-cyan-500/50 bg-[#06121f]/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-[0_0_25px_rgba(6,182,212,0.25)] my-1">
+                  {/* News */}
+                  <button
+                    onClick={() => setActiveTab("signals")}
+                    className="flex flex-col items-center gap-1 group"
+                  >
+                    <Calendar className="w-5 h-5 text-cyan-400 group-active:scale-90 transition" />
+                    <span className="text-[11px] font-extrabold text-cyan-400 tracking-wider">NEWS</span>
+                  </button>
+
+                  {/* Center Glowing Play / Pause (Trade) */}
+                  <button
+                    onClick={() => setIsActive(!isActive)}
+                    className="flex flex-col items-center gap-1 group"
+                  >
+                    <div className="w-14 h-14 rounded-full border-2 border-cyan-400 bg-gradient-to-b from-cyan-950 to-slate-950 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)] active:scale-95 transition">
+                      {isActive ? (
+                        <Pause className="w-5 h-5 fill-cyan-300 text-cyan-300" />
+                      ) : (
+                        <Play className="w-5 h-5 fill-cyan-400 text-cyan-400 ml-0.5" />
+                      )}
+                    </div>
+                    <span className="text-[11px] font-extrabold text-cyan-300 tracking-wider">TRADE</span>
+                  </button>
+
+                  {/* Scan */}
+                  <button
+                    onClick={() => setActiveTab("scanner")}
+                    className="flex flex-col items-center gap-1 group"
+                  >
+                    <TrendingUp className="w-5 h-5 text-cyan-400 group-active:scale-90 transition" />
+                    <span className="text-[11px] font-extrabold text-cyan-400 tracking-wider">SCAN</span>
+                  </button>
+                </div>
+
+                {/* Powered By Tag */}
+                <div className="text-[11px] font-medium text-slate-400 py-0.5">
+                  Powered by <span className="text-cyan-400 font-bold">EA Converter</span>
+                </div>
+
+                {/* Stacked Cards */}
+                <div className="flex flex-col gap-3 w-full">
+                  {/* Card 1: Active Bot */}
+                  <div
+                    onClick={() => setActiveTab("signals")}
+                    className="w-full bg-[#06121f] border-2 border-cyan-500/40 rounded-[22px] p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
+                  >
+                    <div className="w-12 h-12 rounded-full border border-cyan-400/60 p-0.5 bg-slate-900 shrink-0 overflow-hidden shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+                      <img
+                        src="/images/bluescalp-bot.jpg"
+                        alt="BlueScalp Robot"
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                        BLUESCALP ASSASSIN EA
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                        {isActive ? "ACTIVE • MONITORING" : "IDLE"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Chart Scanner */}
+                  <div
+                    onClick={() => setActiveTab("scanner")}
+                    className="w-full bg-[#06121f] border-2 border-cyan-500/40 rounded-[22px] p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
+                  >
+                    <div className="w-12 h-12 rounded-full border border-cyan-400/60 flex items-center justify-center bg-cyan-950/60 text-cyan-300 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+                      <BarChart2 className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                        CHART SCANNER
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                        AI-POWERED TRADE ANALYSIS
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Add New EA */}
+                  <div
+                    onClick={() => setModalOpen("connect")}
+                    className="w-full bg-[#06121f] border-2 border-cyan-500/40 rounded-[22px] p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
+                  >
+                    <div className="w-12 h-12 rounded-full border border-cyan-400/60 flex items-center justify-center bg-cyan-950/60 text-cyan-300 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+                      <Plus className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                        ADD A NEW EA
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                        HAVE A VALID LICENSE KEY
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* =================================================================
+                 CLASSIC / PREMIUM DASHBOARD
+                 ================================================================= */
+              <>
             {/* HERO ROBOT CARD: Supports Rectangle OR Circle Shape */}
             {botShape === "rectangle" ? (
               <div className={`relative w-full rounded-[28px] border-2 ${theme.cardBorder} bg-[#06121f] p-4 ${theme.shadow} overflow-hidden flex flex-col justify-between min-h-[440px] transition-all`}>
@@ -916,6 +1068,8 @@ TP: ${trade.takeProfit1}`
                 </div>
               </div>
             </div>
+              </>
+            )}
           </>
         )}
 
@@ -1192,6 +1346,54 @@ TP: ${trade.takeProfit1}`
                 Console & Terminal Settings
               </h2>
               <p className="text-xs text-slate-400">Customization, Appearance & System Bridge</p>
+            </div>
+
+            {/* TRADING: AUTO-TRADE */}
+            <div className="bg-[#081525] border border-cyan-500/20 rounded-2xl p-4 flex items-center justify-between shadow-md">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-bold text-slate-200">Auto-Trade</span>
+                <p className="text-[11px] text-slate-400">Places scanner and chat trades without asking you first</p>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !autoTrade;
+                  setAutoTrade(next);
+                  localStorage.setItem("bsa_autotrade", String(next));
+                }}
+                className={`w-12 h-6 rounded-full transition-colors p-0.5 border ${
+                  autoTrade ? "bg-cyan-500 border-cyan-400" : "bg-slate-800 border-slate-600"
+                }`}
+              >
+                <div className={`w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform ${autoTrade ? "translate-x-6" : "translate-x-0"}`} />
+              </button>
+            </div>
+
+            {/* HOME STYLE SELECTOR (Classic / Premium / Commander) */}
+            <div className="bg-[#081525] border border-cyan-500/20 rounded-2xl p-4 flex flex-col gap-2.5 shadow-md">
+              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">Home Style</span>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "classic", label: "Classic", desc: "The original home" },
+                  { id: "premium", label: "Premium", desc: "Obsidian & chrome" },
+                  { id: "commander", label: "Commander", desc: "Portrait and cards" },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setHomeStyle(s.id as HomeStyle);
+                      localStorage.setItem("bsa_home_style", s.id);
+                    }}
+                    className={`p-2.5 rounded-xl border flex flex-col items-center text-center transition ${
+                      homeStyle === s.id
+                        ? "bg-cyan-950/80 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white"
+                    }`}
+                  >
+                    <span className="text-xs font-extrabold">{s.label}</span>
+                    <span className="text-[9px] text-slate-400 mt-0.5 leading-tight">{s.desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* 1. BOT IMAGE SHAPE */}

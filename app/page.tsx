@@ -662,7 +662,7 @@ TP: ${trade.takeProfit1}`
   // 2. Unlocked Main Console
   return (
     <div 
-      className={`min-h-screen bg-[#030811] text-slate-100 flex justify-center pb-24 select-none relative overflow-x-hidden ${getFontClass()}`}
+      className={`min-h-screen bg-[#030811] text-slate-100 flex justify-center pb-8 select-none relative overflow-x-hidden ${getFontClass()}`}
       onTouchMove={handleDragMove}
       onTouchEnd={handleDragEnd}
       onMouseMove={handleDragMove}
@@ -723,13 +723,13 @@ TP: ${trade.takeProfit1}`
 
                 {/* Floating Action Pill Bar: NEWS | TRADE | SCAN */}
                 <div className="w-full max-w-sm rounded-[24px] border-2 border-cyan-500/50 bg-[#06121f]/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-[0_0_25px_rgba(6,182,212,0.25)] my-1">
-                  {/* News */}
+                  {/* Signals */}
                   <button
                     onClick={() => setActiveTab("signals")}
                     className="flex flex-col items-center gap-1 group"
                   >
-                    <Calendar className="w-5 h-5 text-cyan-400 group-active:scale-90 transition" />
-                    <span className="text-[11px] font-extrabold text-cyan-400 tracking-wider">NEWS</span>
+                    <Radio className="w-5 h-5 text-cyan-400 group-active:scale-90 transition" />
+                    <span className="text-[11px] font-extrabold text-cyan-400 tracking-wider">SIGNALS</span>
                   </button>
 
                   {/* Center Glowing Play / Pause (Trade) */}
@@ -1781,40 +1781,7 @@ TP: ${trade.takeProfit1}`
         </div>
       )}
 
-      {/* BOTTOM NAVIGATION: CLEAN 4 TABS */}
-      <nav className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#050e1a]/95 backdrop-blur-xl border-t ${theme.border} py-2.5 px-6 flex justify-between items-center z-40`}>
-        <button 
-          onClick={() => setActiveTab("home")} 
-          className={`flex flex-col items-center gap-1 transition ${activeTab === "home" ? theme.accentText : "text-slate-400"}`}
-        >
-          <Home className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Home</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab("signals")} 
-          className={`flex flex-col items-center gap-1 transition ${activeTab === "signals" ? theme.accentText : "text-slate-400"}`}
-        >
-          <Radio className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Signals</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab("scanner")} 
-          className={`flex flex-col items-center gap-1 transition ${activeTab === "scanner" ? theme.accentText : "text-slate-400"}`}
-        >
-          <TrendingUp className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Scanner</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab("settings")} 
-          className={`flex flex-col items-center gap-1 transition ${activeTab === "settings" ? theme.accentText : "text-slate-400"}`}
-        >
-          <Sliders className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Settings</span>
-        </button>
-      </nav>
+      
 
     </div>
   );

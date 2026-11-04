@@ -140,69 +140,102 @@ function analyzeSMC(symbol: string, candles: Candle[], livePrice: number): VipSi
   const sweptSellside = last.low < swingLow && last.close > swingLow;
   const sweptBuyside = last.high > swingHigh && last.close < swingHigh;
 
-  // 6. Confluence Evaluation
-  let confluence = 4.0;
-  let action: "BUY" | "SELL" | "WAIT" = "WAIT";
-  const reasons: string[] = [];
-  const tags: string[] = [];
+  // 6. Scanner-Aligned Structural Evaluation
+  let bullConfluence = 0;
+  let bearConfluence = 0;
+  const bullReasons: string[] = [];
+  const bearReasons: string[] = [];
+  const bullTags: string[] = [];
+  const bearTags: string[] = [];
 
-  if (isEmaBullish || isBullishBOS || sweptSellside) {
-    action = "BUY";
-    if (isEmaBullish) {
-      confluence += 1.8;
-      reasons.push("M5 Trend Alignment: Price above EMA 20 & 50");
-    }
-    if (isBullishBOS) {
-      confluence += 2.2;
-      reasons.push(`Bullish Break of Structure past ${swingHigh.toFixed(cfg.decimals)}`);
-      tags.push("BOS CONFIRMED");
-    }
-    if (sweptSellside) {
-      confluence += 2.5;
-      reasons.push("Institutional Liquidity Sweep below recent swing low");
-      tags.push("LIQ PURGED");
-    }
-    if (bullFvgFound) {
-      confluence += 1.5;
-      reasons.push("M5 Bullish Fair Value Gap (FVG) Inflow");
-      tags.push("FVG DISCOUNT");
-    }
-  } else if (isEmaBearish || isBearishBOS || sweptBuyside) {
-    action = "SELL";
-    if (isEmaBearish) {
-      confluence += 1.8;
-      reasons.push("M5 Trend Alignment: Price below EMA 20 & 50");
-    }
-    if (isBearishBOS) {
-      confluence += 2.2;
-      reasons.push(`Bearish Break of Structure below ${swingLow.toFixed(cfg.decimals)}`);
-      tags.push("BOS CONFIRMED");
-    }
-    if (sweptBuyside) {
-      confluence += 2.5;
-      reasons.push("Institutional Liquidity Sweep above recent swing high");
-      tags.push("LIQ PURGED");
-    }
-    if (bearFvgFound) {
-      confluence += 1.5;
-      reasons.push("M5 Bearish Fair Value Gap (FVG) Supply Retest");
-      tags.push("FVG PREMIUM");
-    }
+  // Trend factor
+  if (isEmaBullish) {
+    bullConfluence += 2.0;
+    bullReasons.push("Bullish trend: Price above EMA 20 & 50");
+  } else if (isEmaBearish) {
+    bearConfluence += 2.0;
+    bearReasons.push("Bearish trend: Price below EMA 20 & 50");
   }
 
-  // 7. Accuracy & Validity Gate
+  // Break of Structure factor
+  if (isBullishBOS) {
+    bullConfluence += 3.0;
+    bullReasons.push(`Bullish BOS broken above ${swingHigh.toFixed(cfg.decimals)}`);
+    bullTags.push("BOS CONFIRMED");
+  }
+  if (isBearishBOS) {
+    bearConfluence += 3.0;
+    bearReasons.push(`Bearish BOS broken below ${swingLow.toFixed(cfg.decimals)}`);
+    bearTags.push("BOS CONFIRMED");
+  }
+
+  // Institutional Liquidity Sweep factor
+  if (sweptSellside) {
+    bullConfluence += 3.5;
+    bullReasons.push("Liquidity Sweep: Purged sell-side stops and closed back inside range");
+    bullTags.push("LIQ SWEEP");
+  }
+  if (sweptBuyside) {
+    bearConfluence += 3.5;
+    bearReasons.push("Liquidity Sweep: Purged buy-side stops and closed back inside range");
+    bearTags.push("LIQ SWEEP");
+  }
+
+  // Fair Value Gap factor
+  if (bullFvgFound) {
+    bullConfluence += 1.5;
+    bullReasons.push("Bullish Fair Value Gap (FVG) discount retest");
+    bullTags.push("FVG DISCOUNT");
+  }
+  if (bearFvgFound) {
+    bearConfluence += 1.5;
+    bearReasons.push("Bearish Fair Value Gap (FVG) premium retest");
+    bearTags.push("FVG PREMIUM");
+  }
+
+  // 7. Decision & Confluence Threshold (minimum 6.5 required to trigger BUY/SELL)
+  let action: "BUY" | "SELL" | "WAIT" = "WAIT";
+  let confluence = 3.0;
+  let reasons: string[] = [];
+  let tags: string[] = [];
+
+  if (bullConfluence >= 6.5 && bullConfluence > bearConfluence) {
+    action = "BUY";
+    confluence = Math.min(9.8, bullConfluence);
+    reasons = bullReasons;
+    tags = bullTags;
+  } else if (bearConfluence >= 6.5 && bearConfluence > bullConfluence) {
+    action = "SELL";
+    confluence = Math.min(9.8, bearConfluence);
+    reasons = bearReasons;
+    tags = bearTags;
+  } else {
+    action = "WAIT";
+    confluence = Math.max(bullConfluence, bearConfluence, 3.5);
+    reasons = ["Market in consolidation/chop. No high-probability structural confluence detected."];
+    tags = ["WAIT FOR SETUP"];
+  }
+
   const confluenceScore = Math.min(9.8, Math.round(confluence * 10) / 10);
-  const isValid = confluenceScore >= 6.8;
-  const status: VipSignal["status"] = isValid ? "VALID" : confluenceScore >= 5.5 ? "WAITING_CONFIRMATION" : "CHOP_FILTERED";
+  const isValid = action !== "WAIT" && confluenceScore >= 6.8;
+  const status: VipSignal["status"] = isValid
+    ? "VALID"
+    : confluenceScore >= 5.5
+    ? "WAITING_CONFIRMATION"
+    : "CHOP_FILTERED";
 
   // Trade Type Classification
-  let tradeType: VipSignal["tradeType"] = "SCALP";
-  if (sweptSellside || sweptBuyside) {
-    tradeType = "SNIPER_ENTRY";
-  } else if (confluenceScore >= 7.8) {
-    tradeType = "A_PLUS";
-  } else if ((isBullishBOS || isBearishBOS) && confluenceScore >= 7.0) {
-    tradeType = "SWING";
+  let tradeType: VipSignal["tradeType"] = "NEUTRAL";
+  if (action !== "WAIT") {
+    if (sweptSellside || sweptBuyside) {
+      tradeType = "SNIPER_ENTRY";
+    } else if (confluenceScore >= 7.8) {
+      tradeType = "A_PLUS";
+    } else if (isBullishBOS || isBearishBOS) {
+      tradeType = "SWING";
+    } else {
+      tradeType = "SCALP";
+    }
   }
 
   const confidence: VipSignal["confidence"] =
@@ -217,20 +250,20 @@ function analyzeSMC(symbol: string, candles: Candle[], livePrice: number): VipSi
   const atr = Math.max(atrSum / lookbackAtr, livePrice * 0.0008);
 
   const entry = Number(livePrice.toFixed(cfg.decimals));
-  let stopLoss: number;
-  let takeProfit1: number;
-  let takeProfit2: number;
-  let takeProfit3: number;
-
-  const multiplier = tradeType === "SNIPER_ENTRY" ? 1.2 : tradeType === "SWING" ? 2.5 : 1.6;
+  let stopLoss = 0;
+  let takeProfit1 = 0;
+  let takeProfit2 = 0;
+  let takeProfit3 = 0;
 
   if (action === "BUY") {
+    const multiplier = tradeType === "SNIPER_ENTRY" ? 1.1 : tradeType === "SWING" ? 2.2 : 1.5;
     stopLoss = Number((entry - atr * multiplier).toFixed(cfg.decimals));
     const risk = Math.max(entry - stopLoss, livePrice * 0.0005);
     takeProfit1 = Number((entry + risk * 1.8).toFixed(cfg.decimals));
     takeProfit2 = Number((entry + risk * 2.8).toFixed(cfg.decimals));
     takeProfit3 = Number((entry + risk * 4.2).toFixed(cfg.decimals));
-  } else {
+  } else if (action === "SELL") {
+    const multiplier = tradeType === "SNIPER_ENTRY" ? 1.1 : tradeType === "SWING" ? 2.2 : 1.5;
     stopLoss = Number((entry + atr * multiplier).toFixed(cfg.decimals));
     const risk = Math.max(stopLoss - entry, livePrice * 0.0005);
     takeProfit1 = Number((entry - risk * 1.8).toFixed(cfg.decimals));

@@ -377,7 +377,7 @@ TP: ${trade.takeProfit1}`
         localStorage.setItem("bsa_license", cleanKey);
         localStorage.setItem("bluescalp_license_key", cleanKey);
         setActiveKey(cleanKey);
-        setClientInfo({ clientName: "Thabang Seake (Master)", expiresAt: "2036-12-31T23:59:59Z" });
+        setClientInfo({ clientName: "Tman Capitals (Master)", expiresAt: "2036-12-31T23:59:59Z" });
         setIsUnlocked(true);
         if (!isSilent) setIsVerifying(false);
         return;
@@ -716,8 +716,8 @@ TP: ${trade.takeProfit1}`
                   <h1 className="text-2xl font-black text-white tracking-wide uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                     BLUESCALP ASSASSIN EA
                   </h1>
-                  <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                    {clientInfo?.clientName ? clientInfo.clientName : "Thabang Seake"}
+                  <p className="text-xs font-semibold text-cyan-400/90 tracking-wide mt-0.5">
+                    Tman Capitals
                   </p>
                 </div>
 
@@ -759,7 +759,7 @@ TP: ${trade.takeProfit1}`
 
                 {/* Powered By Tag */}
                 <div className="text-[11px] font-medium text-slate-400 py-0.5">
-                  Powered by <span className="text-cyan-400 font-bold">EA Converter</span>
+                  Powered by <span className="text-cyan-400 font-bold">BLUESCALP ENGINE</span>
                 </div>
 
                 {/* Stacked Cards */}
@@ -1563,7 +1563,7 @@ TP: ${trade.takeProfit1}`
               </div>
               <div className="text-xs text-slate-300 space-y-0.5">
                 <p><strong>License Key:</strong> <span className={`font-mono ${theme.accentText}`}>{activeKey}</span></p>
-                <p><strong>Assigned User:</strong> {clientInfo?.clientName || "Thabang Seake (Master)"}</p>
+                <p><strong>Assigned User:</strong> {clientInfo?.clientName || "Tman Capitals (Master)"}</p>
                 <p><strong>Expiry:</strong> {clientInfo?.expiresAt ? new Date(clientInfo.expiresAt).toLocaleDateString() : "Lifetime Verified"}</p>
               </div>
               <button 

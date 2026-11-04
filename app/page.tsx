@@ -842,34 +842,79 @@ TP: ${trade.takeProfit1}`
               </button>
             </div>
 
-            {/* MY ROBOTS SECTION (Only shows BLUESCALP ASSASSIN V1.0, NO allowed brokers) */}
-            <div className="flex items-center justify-between pt-1">
+            {/* CONNECTED BOTS & QUICK ACTION CARDS */}
+            <div className="flex items-center justify-between pt-2">
               <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-1.5">
                 <Layers className={`w-4 h-4 ${theme.accentText}`} />
-                My Robots
+                Connected Bots
               </h2>
-              <span className={`text-[10px] ${theme.accentText} font-bold bg-slate-900 px-2 py-0.5 rounded border ${theme.border}`}>
-                Active
-              </span>
+              <button
+                onClick={() => setModalOpen("connect")}
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-900/60 active:scale-95 transition flex items-center gap-1"
+              >
+                + Add New Bot
+              </button>
             </div>
 
-            <div className={`w-full bg-[#081525] border ${theme.border} rounded-2xl p-3.5 flex items-center justify-between shadow-md`}>
-              <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl border ${theme.border} overflow-hidden bg-slate-900 shrink-0`}>
-                  <img 
-                    src="/images/bluescalp-bot.jpg" 
-                    alt="BlueScalp Robot" 
-                    className="w-full h-full object-cover" 
+            {/* Stacked Cards matching reference UI */}
+            <div className="flex flex-col gap-2.5 w-full">
+              {/* Card 1: Active EA */}
+              <div
+                onClick={() => setActiveTab("signals")}
+                className="w-full bg-[#06121f] border border-cyan-500/30 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg active:scale-[0.99] transition cursor-pointer"
+              >
+                <div className="w-12 h-12 rounded-full border border-cyan-400/60 p-0.5 bg-slate-900 shrink-0 overflow-hidden shadow-[0_0_12px_rgba(6,182,212,0.4)]">
+                  <img
+                    src="/images/bluescalp-bot.jpg"
+                    alt="BlueScalp Robot"
+                    className="w-full h-full object-cover rounded-full"
                   />
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-100">BLUESCALP ASSASSIN V1.0</p>
-                  <p className={`text-[11px] ${theme.accentText} font-medium`}>Machine Gunner Strategy • 3-Bullet Burst</p>
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-slate-100 tracking-wide uppercase">
+                    BLUESCALP ASSASSIN EA
+                  </h3>
+                  <p className="text-[11px] text-cyan-400 font-medium">
+                    {isActive ? "ACTIVE • MONITORING SESSIONS" : "IDLE • PAUSED"}
+                  </p>
                 </div>
               </div>
-              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/30">
-                ONLINE
-              </span>
+
+              {/* Card 2: Chart Scanner */}
+              <div
+                onClick={() => setActiveTab("scanner")}
+                className="w-full bg-[#06121f] border border-cyan-500/30 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg active:scale-[0.99] transition cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+                  <BarChart2 className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-slate-100 tracking-wide uppercase">
+                    CHART SCANNER
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    AI-POWERED TRADE ANALYSIS
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 3: Add A New EA */}
+              <div
+                onClick={() => setModalOpen("connect")}
+                className="w-full bg-[#06121f] border border-cyan-500/30 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg active:scale-[0.99] transition cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-slate-100 tracking-wide uppercase">
+                    ADD A NEW EA
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    HAVE A VALID LICENSE KEY
+                  </p>
+                </div>
+              </div>
             </div>
           </>
         )}

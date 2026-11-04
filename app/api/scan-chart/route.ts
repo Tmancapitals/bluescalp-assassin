@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 
 const CANDIDATE_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-latest",
+  "gemini-3.8-flash",
   "gemini-2.5-flash",
-  "gemini-2.0-flash-lite",
+  "gemini-2.0-flash",
 ];
 
 export async function POST(req: NextRequest) {
@@ -105,7 +103,9 @@ Respond ONLY with valid JSON matching this exact structure:
         }
 
         const data = await response.json();
-        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const parts = data?.candidates?.[0]?.content?.parts || [];
+        const textParts = parts.filter((p: any) => p?.text && !p?.thought).map((p: any) => p.text);
+        const rawText = textParts.join("\n") || parts.map((p: any) => p?.text || "").join("\n").trim();
         if (!rawText) {
           attempts.push({ model, status: 200, message: "Empty response text" });
           continue;

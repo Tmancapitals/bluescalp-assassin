@@ -47,7 +47,8 @@ import {
   FileImage,
   Check,
   Mic,
-  MicOff
+  MicOff,
+  Plus
 } from "lucide-react";
 
 const ALLOWED_BROKERS = [
@@ -711,7 +712,7 @@ TP: ${trade.takeProfit1}`
                       BLUESCALP ASSASSIN V1.0
                     </h1>
                     <p className={`text-xs font-semibold ${theme.accentText} tracking-wide mt-0.5`}>
-                      by Tman Capitals {clientInfo ? `• Verified: ${clientInfo.clientName}` : ""}
+                      by Tman Capitals
                     </p>
                   </div>
 

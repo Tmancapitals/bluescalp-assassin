@@ -9,15 +9,18 @@ export interface AssetInfo {
 }
 
 export const ALL_MARKET_ASSETS: AssetInfo[] = [
-  // Metals & Commodities
+  // --- METALS & COMMODITIES ---
   { symbol: "XAUUSD", name: "Gold / US Dollar", category: "Metals" },
   { symbol: "XAGUSD", name: "Silver / US Dollar", category: "Metals" },
+  { symbol: "XPTUSD", name: "Platinum / US Dollar", category: "Metals" },
+  { symbol: "XPDUSD", name: "Palladium / US Dollar", category: "Metals" },
   { symbol: "USOIL", name: "WTI Crude Oil", category: "Commodities" },
   { symbol: "UKOIL", name: "Brent Crude Oil", category: "Commodities" },
   { symbol: "NATGAS", name: "Natural Gas", category: "Commodities" },
   { symbol: "COPPER", name: "High Grade Copper", category: "Commodities" },
+  { symbol: "ALUMINUM", name: "Aluminum", category: "Commodities" },
 
-  // Indices
+  // --- INDICES ---
   { symbol: "US30", name: "Dow Jones Industrial 30", category: "Indices" },
   { symbol: "NAS100", name: "Nasdaq 100", category: "Indices" },
   { symbol: "SPX500", name: "S&P 500 Index", category: "Indices" },
@@ -27,8 +30,11 @@ export const ALL_MARKET_ASSETS: AssetInfo[] = [
   { symbol: "FRA40", name: "CAC 40 (France)", category: "Indices" },
   { symbol: "AUS200", name: "ASX 200 (Australia)", category: "Indices" },
   { symbol: "HK50", name: "Hang Seng (Hong Kong)", category: "Indices" },
+  { symbol: "CHINA50", name: "FTSE China A50", category: "Indices" },
+  { symbol: "EU50", name: "Euro Stoxx 50", category: "Indices" },
+  { symbol: "VIX", name: "Volatility S&P Index", category: "Indices" },
 
-  // Forex Majors & Crosses
+  // --- FOREX MAJORS ---
   { symbol: "EURUSD", name: "Euro / US Dollar", category: "Forex" },
   { symbol: "GBPUSD", name: "British Pound / US Dollar", category: "Forex" },
   { symbol: "USDJPY", name: "US Dollar / Japanese Yen", category: "Forex" },
@@ -36,26 +42,43 @@ export const ALL_MARKET_ASSETS: AssetInfo[] = [
   { symbol: "USDCAD", name: "US Dollar / Canadian Dollar", category: "Forex" },
   { symbol: "USDCHF", name: "US Dollar / Swiss Franc", category: "Forex" },
   { symbol: "NZDUSD", name: "Kiwi / US Dollar", category: "Forex" },
-  { symbol: "EURJPY", name: "Euro / Japanese Yen", category: "Forex" },
-  { symbol: "GBPJPY", name: "Pound / Japanese Yen", category: "Forex" },
-  { symbol: "AUDJPY", name: "Aussie / Japanese Yen", category: "Forex" },
-  { symbol: "CADJPY", name: "Canadian Dollar / Yen", category: "Forex" },
-  { symbol: "CHFJPY", name: "Swiss Franc / Yen", category: "Forex" },
-  { symbol: "NZDJPY", name: "Kiwi / Japanese Yen", category: "Forex" },
+
+  // --- FOREX MINORS & CROSSES ---
   { symbol: "EURGBP", name: "Euro / British Pound", category: "Forex" },
+  { symbol: "EURJPY", name: "Euro / Japanese Yen", category: "Forex" },
   { symbol: "EURAUD", name: "Euro / Australian Dollar", category: "Forex" },
   { symbol: "EURCAD", name: "Euro / Canadian Dollar", category: "Forex" },
+  { symbol: "EURCHF", name: "Euro / Swiss Franc", category: "Forex" },
+  { symbol: "EURNZD", name: "Euro / New Zealand Dollar", category: "Forex" },
+  { symbol: "GBPJPY", name: "Pound / Japanese Yen", category: "Forex" },
   { symbol: "GBPAUD", name: "Pound / Australian Dollar", category: "Forex" },
   { symbol: "GBPCAD", name: "Pound / Canadian Dollar", category: "Forex" },
   { symbol: "GBPCHF", name: "Pound / Swiss Franc", category: "Forex" },
+  { symbol: "GBPNZD", name: "Pound / New Zealand Dollar", category: "Forex" },
+  { symbol: "AUDJPY", name: "Aussie / Japanese Yen", category: "Forex" },
+  { symbol: "AUDCAD", name: "Aussie / Canadian Dollar", category: "Forex" },
+  { symbol: "AUDCHF", name: "Aussie / Swiss Franc", category: "Forex" },
   { symbol: "AUDNZD", name: "Aussie / Kiwi", category: "Forex" },
+  { symbol: "CADJPY", name: "Canadian Dollar / Yen", category: "Forex" },
+  { symbol: "CADCHF", name: "Canadian Dollar / Swiss Franc", category: "Forex" },
+  { symbol: "CHFJPY", name: "Swiss Franc / Japanese Yen", category: "Forex" },
+  { symbol: "NZDJPY", name: "Kiwi / Japanese Yen", category: "Forex" },
+  { symbol: "NZDCAD", name: "Kiwi / Canadian Dollar", category: "Forex" },
+  { symbol: "NZDCHF", name: "Kiwi / Swiss Franc", category: "Forex" },
+
+  // --- FOREX EXOTICS ---
   { symbol: "USDZAR", name: "US Dollar / South African Rand", category: "Forex" },
   { symbol: "EURZAR", name: "Euro / South African Rand", category: "Forex" },
   { symbol: "GBPZAR", name: "Pound / South African Rand", category: "Forex" },
   { symbol: "USDMXN", name: "US Dollar / Mexican Peso", category: "Forex" },
   { symbol: "USDSGD", name: "US Dollar / Singapore Dollar", category: "Forex" },
+  { symbol: "USDTRY", name: "US Dollar / Turkish Lira", category: "Forex" },
+  { symbol: "USDNOK", name: "US Dollar / Norwegian Krone", category: "Forex" },
+  { symbol: "USDSEK", name: "US Dollar / Swedish Krona", category: "Forex" },
+  { symbol: "USDCNH", name: "US Dollar / Chinese Yuan", category: "Forex" },
+  { symbol: "USDPLN", name: "US Dollar / Polish Zloty", category: "Forex" },
 
-  // Crypto
+  // --- CRYPTO ---
   { symbol: "BTCUSD", name: "Bitcoin / US Dollar", category: "Crypto" },
   { symbol: "ETHUSD", name: "Ethereum / US Dollar", category: "Crypto" },
   { symbol: "SOLUSD", name: "Solana / US Dollar", category: "Crypto" },
@@ -64,19 +87,36 @@ export const ALL_MARKET_ASSETS: AssetInfo[] = [
   { symbol: "DOGEUSD", name: "Dogecoin / US Dollar", category: "Crypto" },
   { symbol: "ADAUSD", name: "Cardano / US Dollar", category: "Crypto" },
   { symbol: "LTCUSD", name: "Litecoin / US Dollar", category: "Crypto" },
+  { symbol: "AVAXUSD", name: "Avalanche / US Dollar", category: "Crypto" },
+  { symbol: "LINKUSD", name: "Chainlink / US Dollar", category: "Crypto" },
+  { symbol: "DOTUSD", name: "Polkadot / US Dollar", category: "Crypto" },
+  { symbol: "NEARUSD", name: "NEAR Protocol / US Dollar", category: "Crypto" },
 
-  // Synthetics / Volatility
+  // --- DERIV SYNTHETICS / VOLATILITY ---
   { symbol: "VOL_10", name: "Volatility 10 Index", category: "Synthetics" },
+  { symbol: "VOL_10_1S", name: "Volatility 10 (1s) Index", category: "Synthetics" },
   { symbol: "VOL_20", name: "Volatility 20 Index", category: "Synthetics" },
   { symbol: "VOL_25", name: "Volatility 25 Index", category: "Synthetics" },
+  { symbol: "VOL_25_1S", name: "Volatility 25 (1s) Index", category: "Synthetics" },
   { symbol: "VOL_50", name: "Volatility 50 Index", category: "Synthetics" },
+  { symbol: "VOL_50_1S", name: "Volatility 50 (1s) Index", category: "Synthetics" },
   { symbol: "VOL_75", name: "Volatility 75 Index", category: "Synthetics" },
+  { symbol: "VOL_75_1S", name: "Volatility 75 (1s) Index", category: "Synthetics" },
   { symbol: "VOL_80", name: "Volatility 80 Index", category: "Synthetics" },
   { symbol: "VOL_100", name: "Volatility 100 Index", category: "Synthetics" },
+  { symbol: "VOL_100_1S", name: "Volatility 100 (1s) Index", category: "Synthetics" },
+  { symbol: "CRASH_300", name: "Crash 300 Index", category: "Synthetics" },
   { symbol: "CRASH_500", name: "Crash 500 Index", category: "Synthetics" },
   { symbol: "CRASH_1000", name: "Crash 1000 Index", category: "Synthetics" },
+  { symbol: "BOOM_300", name: "Boom 300 Index", category: "Synthetics" },
   { symbol: "BOOM_500", name: "Boom 500 Index", category: "Synthetics" },
   { symbol: "BOOM_1000", name: "Boom 1000 Index", category: "Synthetics" },
+  { symbol: "STEP_INDEX", name: "Step Index", category: "Synthetics" },
+  { symbol: "JUMP_10", name: "Jump 10 Index", category: "Synthetics" },
+  { symbol: "JUMP_25", name: "Jump 25 Index", category: "Synthetics" },
+  { symbol: "JUMP_50", name: "Jump 50 Index", category: "Synthetics" },
+  { symbol: "JUMP_75", name: "Jump 75 Index", category: "Synthetics" },
+  { symbol: "JUMP_100", name: "Jump 100 Index", category: "Synthetics" },
 ];
 
 const POPULAR_SYMBOLS = ["XAUUSD", "NAS100", "US30", "EURUSD", "USDJPY", "BTCUSD", "VOL_75"];

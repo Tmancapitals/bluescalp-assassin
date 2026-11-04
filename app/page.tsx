@@ -250,7 +250,14 @@ TP: ${trade.takeProfit1}`
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || ("Analysis failed with status " + res.status));
+        let details = errData.error || ("Analysis failed with status " + res.status);
+        if (errData.attempts && Array.isArray(errData.attempts)) {
+          details += "\n\nAttempts:\n" + errData.attempts.map((a: any) => `• ${a.model} (${a.status}): ${a.message}`).join("\n");
+        }
+        if (errData.supportedModelsForKey && Array.isArray(errData.supportedModelsForKey) && errData.supportedModelsForKey.length > 0) {
+          details += "\n\nSupported models on your key:\n" + errData.supportedModelsForKey.join(", ");
+        }
+        throw new Error(details);
       }
 
       const data = await res.json();

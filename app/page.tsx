@@ -526,20 +526,19 @@ TP: ${trade.takeProfit1}`
     return (
       <div className={`min-h-screen bg-[#030811] text-slate-100 flex items-center justify-center p-4 select-none ${getFontClass()}`}>
         <div className="w-full max-w-sm rounded-3xl border-2 border-cyan-500/40 bg-[#06121f] p-6 shadow-[0_0_40px_rgba(6,182,212,0.3)] flex flex-col items-center gap-5 relative overflow-hidden">
-          <div className="w-20 h-20 rounded-full bg-cyan-950/80 border-2 border-cyan-400 overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.5)]">
-            <img 
-              src="/images/bluescalp-bot.jpg" 
-              alt="BlueScalp Robot" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          <div className="text-center">
-            <h1 className="text-2xl font-black text-cyan-300 tracking-tight">
-              BLUESCALP ASSASSIN
+          {/* Cinematic EA Preview Header */}
+          <div className="text-center flex flex-col items-center pt-2">
+            <div className="w-12 h-12 rounded-full border border-cyan-400/50 bg-cyan-950/50 flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(6,182,212,0.4)]">
+              <span className="text-cyan-300 font-serif font-black text-lg tracking-widest">BA</span>
+            </div>
+            <p className="text-[11px] uppercase tracking-[0.35em] text-cyan-400/70 font-semibold mb-1">
+              WELCOME BACK
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-[0.08em] text-slate-100 uppercase drop-shadow-[0_2px_12px_rgba(6,182,212,0.45)]">
+              BLUESCALP ASSASSIN <span className="text-cyan-400">EA</span>
             </h1>
-            <p className="text-xs font-semibold text-cyan-400/80 mt-0.5">
-              by Tman Capitals • Protected Terminal
+            <p className="text-[11px] tracking-wider text-slate-400 mt-1 font-medium">
+              BY TMAN CAPITALS • PROTECTED TERMINAL
             </p>
           </div>
 

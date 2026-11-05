@@ -734,6 +734,25 @@ TP: ${trade.takeProfit1}`
       )}
 
       <div className="w-full max-w-md px-4 pt-3 flex flex-col gap-3.5 relative z-10">
+
+        {/* UNIVERSAL PERSISTENT TOP BACK BUTTON FOR ALL NON-HOME SCREENS */}
+        {activeTab !== "home" && (
+          <header className={`w-full flex items-center justify-between pb-2.5 pt-1 border-b ${theme.border} bg-[#06121f]/80 backdrop-blur-md sticky top-0 z-30`}>
+            <button
+              onClick={() => setActiveTab("home")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-slate-900/90 text-white font-black text-xs uppercase tracking-wider active:scale-95 transition shadow-lg hover:bg-slate-800"
+            >
+              <ArrowLeft className="w-4 h-4 text-cyan-400" />
+              <span>Back Home</span>
+            </button>
+            <span className="text-xs font-black text-white uppercase tracking-widest">
+              {activeTab === "signals" && "Live Signals Feed"}
+              {activeTab === "scanner" && "AI Chart Scanner"}
+              {activeTab === "settings" && "Terminal Settings"}
+            </span>
+            <div className="w-16" />
+          </header>
+        )}
         
         {/* VIEW 1: HOME TAB */}
         {activeTab === "home" && (
@@ -1822,7 +1841,7 @@ TP: ${trade.takeProfit1}`
                 <Activity className="w-5 h-5 text-emerald-400" />
                 Bot Signal Details & Status
               </h3>
-              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
+              <button onClick={() => { setModalOpen(null); setActiveTab("home"); }} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1855,7 +1874,7 @@ TP: ${trade.takeProfit1}`
             </div>
 
             <button 
-              onClick={() => setModalOpen(null)}
+              onClick={() => { setModalOpen(null); setActiveTab("home"); }}
               className={`w-full py-3 rounded-xl ${theme.buttonBg} font-bold text-xs`}
             >
               Close Status
@@ -1874,7 +1893,7 @@ TP: ${trade.takeProfit1}`
                 <h3 className={`text-lg font-bold ${theme.primaryText}`}>Connect Broker</h3>
                 <p className="text-xs text-slate-400">Live Execution Bridge</p>
               </div>
-              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
+              <button onClick={() => { setModalOpen(null); setActiveTab("home"); }} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>

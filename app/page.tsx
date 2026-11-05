@@ -7,6 +7,7 @@ import EnhancedScannerView, { AdvancedAnalysisResult } from "@/components/Enhanc
 import VipSignalsView from "@/components/VipSignalsView";
 import React, { useState, useEffect, useRef } from "react";
 import {
+  ArrowLeft,
   Play,
   Pause,
   DollarSign,
@@ -61,6 +62,10 @@ const ALLOWED_BROKERS = [
 ];
 
 type HomeStyle = "classic" | "premium" | "commander";
+type LayoutStyle = "hero" | "center" | "dash" | "cine" | "card";
+type TradePanelStyle = "pill" | "circle" | "grid" | "float";
+type ScannerStyle = "pill" | "radar" | "terminal" | "power" | "hybrid";
+
 type ThemeColor = "cyan" | "emerald" | "amber" | "crimson" | "purple" | "blood" | "matrix" | "royal" | "phantom" | "inferno" | "rose" | "stealth";
 type BotShape = "rectangle" | "circle";
 type FontFamily = "sans" | "mono" | "tech";
@@ -129,6 +134,9 @@ export default function MobileConsole() {
 
   // Appearance & Customization Settings
   const [homeStyle, setHomeStyle] = useState<HomeStyle>("commander");
+  const [layoutStyle, setLayoutStyle] = useState<LayoutStyle>("hero");
+  const [tradePanelStyle, setTradePanelStyle] = useState<TradePanelStyle>("pill");
+  const [scannerStyle, setScannerStyle] = useState<ScannerStyle>("pill");
   const [autoTrade, setAutoTrade] = useState(false);
   const [botShape, setBotShape] = useState<BotShape>("rectangle");
   const [themeColor, setThemeColor] = useState<ThemeColor>("cyan");
@@ -473,11 +481,12 @@ TP: ${trade.takeProfit1}`
           accentText: "text-emerald-400",
           border: "border-emerald-500/40",
           cardBorder: "border-emerald-400/60",
-          shadow: "shadow-[0_0_30px_rgba(16,185,129,0.3)]",
+          shadow: "shadow-[0_0_30px_rgba(16,185,129,0.35)]",
           glow: "drop-shadow-[0_2px_14px_rgba(16,185,129,0.8)]",
           badgeBg: "bg-emerald-950/80 border-emerald-500/40 text-emerald-300",
           buttonBg: "bg-gradient-to-r from-emerald-400 to-emerald-500 text-slate-950",
           pulseColor: "bg-emerald-400",
+          hex: "#10b981",
         };
       case "amber":
         return {
@@ -485,11 +494,12 @@ TP: ${trade.takeProfit1}`
           accentText: "text-amber-400",
           border: "border-amber-500/40",
           cardBorder: "border-amber-400/60",
-          shadow: "shadow-[0_0_30px_rgba(245,158,11,0.3)]",
+          shadow: "shadow-[0_0_30px_rgba(245,158,11,0.35)]",
           glow: "drop-shadow-[0_2px_14px_rgba(245,158,11,0.8)]",
           badgeBg: "bg-amber-950/80 border-amber-500/40 text-amber-300",
           buttonBg: "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950",
           pulseColor: "bg-amber-400",
+          hex: "#f59e0b",
         };
       case "crimson":
         return {
@@ -497,11 +507,12 @@ TP: ${trade.takeProfit1}`
           accentText: "text-rose-400",
           border: "border-rose-500/40",
           cardBorder: "border-rose-400/60",
-          shadow: "shadow-[0_0_30px_rgba(244,63,94,0.3)]",
+          shadow: "shadow-[0_0_30px_rgba(244,63,94,0.35)]",
           glow: "drop-shadow-[0_2px_14px_rgba(244,63,94,0.8)]",
           badgeBg: "bg-rose-950/80 border-rose-500/40 text-rose-300",
           buttonBg: "bg-gradient-to-r from-rose-400 to-rose-500 text-white font-bold",
           pulseColor: "bg-rose-400",
+          hex: "#f43f5e",
         };
       case "purple":
         return {
@@ -509,11 +520,51 @@ TP: ${trade.takeProfit1}`
           accentText: "text-fuchsia-400",
           border: "border-fuchsia-500/40",
           cardBorder: "border-fuchsia-400/60",
-          shadow: "shadow-[0_0_30px_rgba(217,70,239,0.3)]",
+          shadow: "shadow-[0_0_30px_rgba(217,70,239,0.35)]",
           glow: "drop-shadow-[0_2px_14px_rgba(217,70,239,0.8)]",
           badgeBg: "bg-fuchsia-950/80 border-fuchsia-500/40 text-fuchsia-300",
           buttonBg: "bg-gradient-to-r from-fuchsia-400 to-fuchsia-500 text-slate-950 font-bold",
           pulseColor: "bg-fuchsia-400",
+          hex: "#d946ef",
+        };
+      case "blood":
+        return {
+          primaryText: "text-orange-300",
+          accentText: "text-orange-400",
+          border: "border-orange-500/40",
+          cardBorder: "border-orange-400/60",
+          shadow: "shadow-[0_0_30px_rgba(249,115,22,0.35)]",
+          glow: "drop-shadow-[0_2px_14px_rgba(249,115,22,0.8)]",
+          badgeBg: "bg-orange-950/80 border-orange-500/40 text-orange-300",
+          buttonBg: "bg-gradient-to-r from-orange-400 to-orange-500 text-slate-950 font-bold",
+          pulseColor: "bg-orange-400",
+          hex: "#f97316",
+        };
+      case "matrix":
+        return {
+          primaryText: "text-lime-300",
+          accentText: "text-lime-400",
+          border: "border-lime-500/40",
+          cardBorder: "border-lime-400/60",
+          shadow: "shadow-[0_0_30px_rgba(132,204,22,0.35)]",
+          glow: "drop-shadow-[0_2px_14px_rgba(132,204,22,0.8)]",
+          badgeBg: "bg-lime-950/80 border-lime-500/40 text-lime-300",
+          buttonBg: "bg-gradient-to-r from-lime-400 to-lime-500 text-slate-950 font-bold",
+          pulseColor: "bg-lime-400",
+          hex: "#84cc16",
+        };
+      case "royal":
+        return {
+          primaryText: "text-blue-300",
+          accentText: "text-blue-400",
+          border: "border-blue-500/40",
+          cardBorder: "border-blue-400/60",
+          shadow: "shadow-[0_0_30px_rgba(59,130,246,0.35)]",
+          glow: "drop-shadow-[0_2px_14px_rgba(59,130,246,0.8)]",
+          badgeBg: "bg-blue-950/80 border-blue-500/40 text-blue-300",
+          buttonBg: "bg-gradient-to-r from-blue-400 to-blue-500 text-slate-950 font-bold",
+          pulseColor: "bg-blue-400",
+          hex: "#3b82f6",
         };
       case "cyan":
       default:
@@ -522,11 +573,12 @@ TP: ${trade.takeProfit1}`
           accentText: "text-cyan-400",
           border: "border-cyan-500/40",
           cardBorder: "border-cyan-400/60",
-          shadow: "shadow-[0_0_30px_rgba(6,182,212,0.3)]",
+          shadow: "shadow-[0_0_30px_rgba(6,182,212,0.35)]",
           glow: "drop-shadow-[0_2px_14px_rgba(6,182,212,0.8)]",
           badgeBg: "bg-cyan-950/80 border-cyan-500/40 text-cyan-300",
           buttonBg: "bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950",
           pulseColor: "bg-cyan-400",
+          hex: "#06b6d4",
         };
     }
   };
@@ -629,7 +681,7 @@ TP: ${trade.takeProfit1}`
           <div className="w-full pt-4 border-t border-slate-800 flex flex-col gap-2.5 text-xs">
             <div className="flex justify-between items-center">
               <span className="font-bold text-slate-300">Need a License?</span>
-              <span className="text-cyan-400 font-bold">R200 (3 Mos) / R600 Life</span>
+              <span className="${theme.accentText} font-bold">R200 (3 Mos) / R600 Life</span>
             </div>
             
             <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-slate-300 space-y-1 text-[11px]">
@@ -695,14 +747,14 @@ TP: ${trade.takeProfit1}`
                 <div className="w-full flex items-center justify-end">
                   <button
                     onClick={() => setActiveTab("settings")}
-                    className="w-10 h-10 rounded-full border border-cyan-500/30 bg-slate-900/80 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] active:scale-95 transition"
+                    className="w-10 h-10 rounded-full border border-white/10 bg-slate-900/80 flex items-center justify-center text-white shadow-[0_0_12px_rgba(6,182,212,0.25)] active:scale-95 transition"
                   >
                     <Menu className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Big Circular Avatar with Glowing Halo */}
-                <div className="relative w-44 h-44 rounded-full p-1 border-2 border-cyan-400/80 shadow-[0_0_35px_rgba(6,182,212,0.45)] bg-[#051322] flex items-center justify-center overflow-hidden">
+                <div className="relative w-44 h-44 rounded-full p-1 border-2 ${theme.cardBorder} ${theme.shadow} bg-[#051322] flex items-center justify-center overflow-hidden">
                   <img
                     src="/images/bluescalp-bot.jpg"
                     alt="BlueScalp Assassin"
@@ -716,20 +768,20 @@ TP: ${trade.takeProfit1}`
                   <h1 className="text-2xl font-black text-white tracking-wide uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                     BLUESCALP ASSASSIN EA
                   </h1>
-                  <p className="text-xs font-semibold text-cyan-400/90 tracking-wide mt-0.5">
+                  <p className="text-xs font-semibold ${theme.accentText} font-bold tracking-wide mt-0.5">
                     Tman Capitals
                   </p>
                 </div>
 
                 {/* Floating Action Pill Bar: NEWS | TRADE | SCAN */}
-                <div className="w-full max-w-sm rounded-[24px] border-2 border-cyan-500/50 bg-[#06121f]/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-[0_0_25px_rgba(6,182,212,0.25)] my-1">
+                <div className="w-full max-w-sm rounded-[24px] border-2 ${theme.cardBorder} bg-[#06121f]/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between ${theme.shadow} my-1">
                   {/* Signals */}
                   <button
                     onClick={() => setActiveTab("signals")}
                     className="flex flex-col items-center gap-1 group"
                   >
-                    <Radio className="w-5 h-5 text-cyan-400 group-active:scale-90 transition" />
-                    <span className="text-[11px] font-extrabold text-cyan-400 tracking-wider">SIGNALS</span>
+                    <Radio className="w-5 h-5 ${theme.accentText} group-active:scale-90 transition" />
+                    <span className="text-[11px] font-extrabold ${theme.accentText} tracking-wider">SIGNALS</span>
                   </button>
 
                   {/* Center Glowing Play / Pause (Trade) */}
@@ -737,14 +789,14 @@ TP: ${trade.takeProfit1}`
                     onClick={() => setIsActive(!isActive)}
                     className="flex flex-col items-center gap-1 group"
                   >
-                    <div className="w-14 h-14 rounded-full border-2 border-cyan-400 bg-gradient-to-b from-cyan-950 to-slate-950 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)] active:scale-95 transition">
+                    <div className="w-14 h-14 rounded-full border-2 ${theme.cardBorder} bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)] active:scale-95 transition">
                       {isActive ? (
-                        <Pause className="w-5 h-5 fill-cyan-300 text-cyan-300" />
+                        <Pause className="w-5 h-5 fill-white text-white" />
                       ) : (
-                        <Play className="w-5 h-5 fill-cyan-400 text-cyan-400 ml-0.5" />
+                        <Play className="w-5 h-5 fill-white text-white ml-0.5" />
                       )}
                     </div>
-                    <span className="text-[11px] font-extrabold text-cyan-300 tracking-wider">TRADE</span>
+                    <span className="text-[11px] font-extrabold text-white tracking-wider">TRADE</span>
                   </button>
 
                   {/* Scan */}
@@ -752,14 +804,14 @@ TP: ${trade.takeProfit1}`
                     onClick={() => setActiveTab("scanner")}
                     className="flex flex-col items-center gap-1 group"
                   >
-                    <TrendingUp className="w-5 h-5 text-cyan-400 group-active:scale-90 transition" />
-                    <span className="text-[11px] font-extrabold text-cyan-400 tracking-wider">SCAN</span>
+                    <TrendingUp className="w-5 h-5 ${theme.accentText} group-active:scale-90 transition" />
+                    <span className="text-[11px] font-extrabold ${theme.accentText} tracking-wider">SCAN</span>
                   </button>
                 </div>
 
                 {/* Powered By Tag */}
                 <div className="text-[11px] font-medium text-slate-400 py-0.5">
-                  Powered by <span className="text-cyan-400 font-bold">BLUESCALP ENGINE</span>
+                  Powered by <span className="${theme.accentText} font-bold">BLUESCALP ENGINE</span>
                 </div>
 
                 {/* Stacked Cards */}
@@ -767,7 +819,7 @@ TP: ${trade.takeProfit1}`
                   {/* Card 1: Active Bot */}
                   <div
                     onClick={() => setActiveTab("signals")}
-                    className="w-full bg-[#06121f] border-2 border-cyan-500/40 rounded-[22px] p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
+                    className="w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
                   >
                     <div className="w-12 h-12 rounded-full border border-cyan-400/60 p-0.5 bg-slate-900 shrink-0 overflow-hidden shadow-[0_0_10px_rgba(6,182,212,0.4)]">
                       <img
@@ -789,7 +841,7 @@ TP: ${trade.takeProfit1}`
                   {/* Card 2: Chart Scanner */}
                   <div
                     onClick={() => setActiveTab("scanner")}
-                    className="w-full bg-[#06121f] border-2 border-cyan-500/40 rounded-[22px] p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
+                    className="w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
                   >
                     <div className="w-12 h-12 rounded-full border border-cyan-400/60 flex items-center justify-center bg-cyan-950/60 text-cyan-300 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
                       <BarChart2 className="w-5 h-5" />
@@ -807,7 +859,7 @@ TP: ${trade.takeProfit1}`
                   {/* Card 3: Add New EA */}
                   <div
                     onClick={() => setModalOpen("connect")}
-                    className="w-full bg-[#06121f] border-2 border-cyan-500/40 rounded-[22px] p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
+                    className="w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
                   >
                     <div className="w-12 h-12 rounded-full border border-cyan-400/60 flex items-center justify-center bg-cyan-950/60 text-cyan-300 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
                       <Plus className="w-5 h-5" />
@@ -1138,7 +1190,7 @@ TP: ${trade.takeProfit1}`
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between text-[11px] text-slate-300">
                       <span>Sensitivity</span>
-                      <span className="text-cyan-400 font-bold">{["Textbook", "Conservative", "Balanced", "Aggressive", "Ultra"][tuningConfig.sensitivity - 1]}</span>
+                      <span className="${theme.accentText} font-bold">{["Textbook", "Conservative", "Balanced", "Aggressive", "Ultra"][tuningConfig.sensitivity - 1]}</span>
                     </div>
                     <input 
                       type="range" min="1" max="5" 
@@ -1151,7 +1203,7 @@ TP: ${trade.takeProfit1}`
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between text-[11px] text-slate-300">
                       <span>Strictness</span>
-                      <span className="text-cyan-400 font-bold">{["Lenient", "Relaxed", "Standard", "Strict", "Surgical"][tuningConfig.strictness - 1]}</span>
+                      <span className="${theme.accentText} font-bold">{["Lenient", "Relaxed", "Standard", "Strict", "Surgical"][tuningConfig.strictness - 1]}</span>
                     </div>
                     <input 
                       type="range" min="1" max="5" 
@@ -1164,7 +1216,7 @@ TP: ${trade.takeProfit1}`
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between text-[11px] text-slate-300">
                       <span>Min Confluences</span>
-                      <span className="text-cyan-400 font-bold">{tuningConfig.minConfluences} Factors</span>
+                      <span className="${theme.accentText} font-bold">{tuningConfig.minConfluences} Factors</span>
                     </div>
                     <input 
                       type="range" min="1" max="5" 
@@ -1177,7 +1229,7 @@ TP: ${trade.takeProfit1}`
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between text-[11px] text-slate-300">
                       <span>Min Risk:Reward</span>
-                      <span className="text-cyan-400 font-bold">1:{tuningConfig.minRR}</span>
+                      <span className="${theme.accentText} font-bold">1:{tuningConfig.minRR}</span>
                     </div>
                     <input 
                       type="range" min="1" max="6" 
@@ -1338,21 +1390,37 @@ TP: ${trade.takeProfit1}`
           </div>
         )}
 
-        {activeTab === "settings" && (
-          <div className="w-full flex flex-col gap-3.5">
-            <div className={`pb-2 border-b ${theme.border}`}>
-              <h2 className={`text-lg font-black ${theme.primaryText} flex items-center gap-2`}>
-                <Sliders className={`w-5 h-5 ${theme.accentText}`} />
-                Console & Terminal Settings
-              </h2>
-              <p className="text-xs text-slate-400">Customization, Appearance & System Bridge</p>
+                {activeTab === "settings" && (
+          <div className="w-full flex flex-col gap-4 pb-12">
+            {/* Top Bar with Back Arrow to Home */}
+            <div className={`flex items-center justify-between pb-3 border-b ${theme.border}`}>
+              <button
+                onClick={() => setActiveTab("home")}
+                className="w-10 h-10 rounded-full border border-white/10 bg-slate-900/80 flex items-center justify-center text-white active:scale-95 transition shadow-md"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div className="text-center">
+                <h2 className="text-base font-black text-white uppercase tracking-wider">
+                  Settings & Appearance
+                </h2>
+                <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">
+                  CUSTOMIZE INTERFACE & TERMINAL
+                </p>
+              </div>
+              <div className="w-10" />
             </div>
 
-            {/* TRADING: AUTO-TRADE */}
-            <div className="bg-[#081525] border border-cyan-500/20 rounded-2xl p-4 flex items-center justify-between shadow-md">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-bold text-slate-200">Auto-Trade</span>
-                <p className="text-[11px] text-slate-400">Places scanner and chat trades without asking you first</p>
+            {/* 1. AUTO-TRADE MASTER TOGGLE */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex items-center justify-between shadow-lg`}>
+              <div className="flex flex-col gap-0.5 pr-2">
+                <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Zap className={`w-4 h-4 ${theme.accentText}`} />
+                  Auto-Trade Engine
+                </span>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Allow automated sniper entries when verified confluences align.
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -1360,46 +1428,189 @@ TP: ${trade.takeProfit1}`
                   setAutoTrade(next);
                   localStorage.setItem("bsa_autotrade", String(next));
                 }}
-                className={`w-12 h-6 rounded-full transition-colors p-0.5 border ${
-                  autoTrade ? "bg-cyan-500 border-cyan-400" : "bg-slate-800 border-slate-600"
+                className={`w-14 h-7 rounded-full transition-colors p-0.5 border ${
+                  autoTrade ? "bg-emerald-500 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]" : "bg-slate-800 border-slate-700"
                 }`}
               >
-                <div className={`w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform ${autoTrade ? "translate-x-6" : "translate-x-0"}`} />
+                <div className={`w-6 h-6 rounded-full bg-white shadow-md transition-transform ${autoTrade ? "translate-x-7" : "translate-x-0"}`} />
               </button>
             </div>
 
-            {/* HOME STYLE SELECTOR (Classic / Premium / Commander) */}
-            <div className="bg-[#081525] border border-cyan-500/20 rounded-2xl p-4 flex flex-col gap-2.5 shadow-md">
-              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">Home Style</span>
+            {/* 2. HOME STYLE */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-2.5 shadow-lg`}>
+              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Home className={`w-4 h-4 ${theme.accentText}`} />
+                Home Style
+              </span>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: "classic", label: "Classic", desc: "The original home" },
-                  { id: "premium", label: "Premium", desc: "Obsidian & chrome" },
-                  { id: "commander", label: "Commander", desc: "Portrait and cards" },
+                  { id: "commander", label: "Commander", desc: "Portrait & Cards" },
+                  { id: "classic", label: "Classic", desc: "Hero Scanner" },
+                  { id: "premium", label: "Premium", desc: "Minimal HUD" },
                 ].map((s) => (
                   <button
                     key={s.id}
                     onClick={() => {
                       setHomeStyle(s.id as HomeStyle);
-                      localStorage.setItem("bsa_home_style", s.id);
+                      localStorage.setItem("bsa_homestyle", s.id);
                     }}
-                    className={`p-2.5 rounded-xl border flex flex-col items-center text-center transition ${
+                    className={`py-2.5 px-2 rounded-xl text-xs font-black uppercase tracking-wider border transition flex flex-col items-center gap-0.5 ${
                       homeStyle === s.id
-                        ? "bg-cyan-950/80 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-                        : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white"
+                        ? `${theme.buttonBg} border-white shadow-lg`
+                        : "bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white"
                     }`}
                   >
-                    <span className="text-xs font-extrabold">{s.label}</span>
-                    <span className="text-[9px] text-slate-400 mt-0.5 leading-tight">{s.desc}</span>
+                    <span>{s.label}</span>
+                    <span className="text-[9px] font-normal opacity-75">{s.desc}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* 1. BOT IMAGE SHAPE */}
-            <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-4 flex flex-col gap-3 shadow-md`}>
-              <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <Square className={`w-3.5 h-3.5 ${theme.accentText}`} />
+            {/* 3. LAYOUT SELECTOR (Hero, Center, Dash, Cine, Card) */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-2.5 shadow-lg`}>
+              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className={`w-4 h-4 ${theme.accentText}`} />
+                Dashboard Layout
+              </span>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  { id: "hero", name: "Hero" },
+                  { id: "center", name: "Center" },
+                  { id: "dash", name: "Dash" },
+                  { id: "cine", name: "Cine" },
+                  { id: "card", name: "Card" },
+                ].map((l) => (
+                  <button
+                    key={l.id}
+                    onClick={() => {
+                      setLayoutStyle(l.id as LayoutStyle);
+                      localStorage.setItem("bsa_layout", l.id);
+                    }}
+                    className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1.5 text-[10px] font-black uppercase transition ${
+                      layoutStyle === l.id
+                        ? `${theme.buttonBg} border-white shadow-md`
+                        : "bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <div className="w-6 h-5 rounded border border-current opacity-70 flex flex-col justify-between p-0.5">
+                      <div className="w-full h-1 bg-current rounded-xs" />
+                      <div className="w-1/2 h-1 bg-current rounded-xs" />
+                    </div>
+                    {l.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 4. TRADE PANEL SELECTOR (Pill, Circle, Grid, Float) */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-2.5 shadow-lg`}>
+              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders className={`w-4 h-4 ${theme.accentText}`} />
+                Trade Panel Mode
+              </span>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { id: "pill", name: "Pill" },
+                  { id: "circle", name: "Circle" },
+                  { id: "grid", name: "Grid" },
+                  { id: "float", name: "Float" },
+                ].map((tp) => (
+                  <button
+                    key={tp.id}
+                    onClick={() => {
+                      setTradePanelStyle(tp.id as TradePanelStyle);
+                      localStorage.setItem("bsa_tradepanel", tp.id);
+                    }}
+                    className={`py-2 rounded-xl border text-[11px] font-black uppercase transition ${
+                      tradePanelStyle === tp.id
+                        ? `${theme.buttonBg} border-white shadow-md`
+                        : "bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {tp.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. CHART SCANNER SELECTOR (Pill, Radar, Terminal, Power, Hybrid) */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-2.5 shadow-lg`}>
+              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Crosshair className={`w-4 h-4 ${theme.accentText}`} />
+                Chart Scanner Mode
+              </span>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  { id: "pill", name: "Pill" },
+                  { id: "radar", name: "Radar" },
+                  { id: "terminal", name: "Term" },
+                  { id: "power", name: "Power" },
+                  { id: "hybrid", name: "Hybrid" },
+                ].map((sc) => (
+                  <button
+                    key={sc.id}
+                    onClick={() => {
+                      setScannerStyle(sc.id as ScannerStyle);
+                      localStorage.setItem("bsa_scannerstyle", sc.id);
+                    }}
+                    className={`py-2 rounded-xl border text-[10px] font-black uppercase transition ${
+                      scannerStyle === sc.id
+                        ? `${theme.buttonBg} border-white shadow-md`
+                        : "bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {sc.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 6. COLOUR THEMES & GLOW ACCENTS (8 Total Palettes) */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-3 shadow-lg`}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Palette className={`w-4 h-4 ${theme.accentText}`} />
+                  Colour Theme & Glow Palette
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                  {themeColor}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 pt-1">
+                {[
+                  { id: "cyan", name: "Cyan Blue", bg: "bg-cyan-400", border: "border-cyan-400" },
+                  { id: "emerald", name: "Emerald", bg: "bg-emerald-400", border: "border-emerald-400" },
+                  { id: "amber", name: "Cyber Gold", bg: "bg-amber-400", border: "border-amber-400" },
+                  { id: "crimson", name: "Crimson", bg: "bg-rose-500", border: "border-rose-500" },
+                  { id: "purple", name: "Neon Purple", bg: "bg-fuchsia-400", border: "border-fuchsia-400" },
+                  { id: "blood", name: "Blood Orange", bg: "bg-orange-500", border: "border-orange-500" },
+                  { id: "matrix", name: "Matrix Lime", bg: "bg-lime-400", border: "border-lime-400" },
+                  { id: "royal", name: "Royal Blue", bg: "bg-blue-500", border: "border-blue-500" },
+                ].map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setThemeColor(c.id as ThemeColor);
+                      localStorage.setItem("bsa_color", c.id);
+                    }}
+                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition ${
+                      themeColor === c.id
+                        ? "bg-slate-800/90 border-white shadow-[0_0_15px_rgba(255,255,255,0.2)] scale-105"
+                        : "bg-slate-900/60 border-slate-800 opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-full ${c.bg} shadow-md border-2 border-white/20`} />
+                    <span className="text-[10px] text-slate-300 font-bold">{c.name.split(" ")[0]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 7. BOT IMAGE SHAPE */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-2.5 shadow-lg`}>
+              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Square className={`w-4 h-4 ${theme.accentText}`} />
                 Bot Image Shape
               </span>
               <div className="grid grid-cols-2 gap-2">
@@ -1408,10 +1619,10 @@ TP: ${trade.takeProfit1}`
                     setBotShape("rectangle");
                     localStorage.setItem("bsa_shape", "rectangle");
                   }}
-                  className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition ${
+                  className={`py-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-black uppercase transition ${
                     botShape === "rectangle"
                       ? `${theme.buttonBg} border-white shadow-md`
-                      : "bg-slate-900 border-slate-700 text-slate-400 hover:text-white"
+                      : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
                   }`}
                 >
                   <Square className="w-4 h-4" />
@@ -1422,57 +1633,23 @@ TP: ${trade.takeProfit1}`
                     setBotShape("circle");
                     localStorage.setItem("bsa_shape", "circle");
                   }}
-                  className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition ${
+                  className={`py-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-black uppercase transition ${
                     botShape === "circle"
                       ? `${theme.buttonBg} border-white shadow-md`
-                      : "bg-slate-900 border-slate-700 text-slate-400 hover:text-white"
+                      : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
                   }`}
                 >
                   <Circle className="w-4 h-4" />
                   Circle (Floating)
                 </button>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Circle shape floats in the center so the background artwork remains visible.
-              </p>
             </div>
 
-            {/* 2. THEME COLOURS (Changes entire bot) */}
-            <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-4 flex flex-col gap-3 shadow-md`}>
-              <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <Palette className={`w-3.5 h-3.5 ${theme.accentText}`} />
-                Theme Colour Palette (Whole Bot)
-              </span>
-              <div className="flex items-center justify-between gap-2 pt-1">
-                {[
-                  { id: "cyan", name: "Cyan Blue", bg: "bg-cyan-400" },
-                  { id: "emerald", name: "Emerald", bg: "bg-emerald-400" },
-                  { id: "amber", name: "Cyber Gold", bg: "bg-amber-400" },
-                  { id: "crimson", name: "Crimson Red", bg: "bg-rose-500" },
-                  { id: "purple", name: "Neon Purple", bg: "bg-fuchsia-400" },
-                ].map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setThemeColor(c.id as ThemeColor);
-                      localStorage.setItem("bsa_color", c.id);
-                    }}
-                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition ${
-                      themeColor === c.id ? "bg-slate-800 scale-105 border border-white" : "opacity-70 hover:opacity-100"
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-full ${c.bg} shadow-md`} />
-                    <span className="text-[10px] text-slate-300 font-medium">{c.name.split(" ")[0]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 3. FONT SELECTION */}
-            <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-4 flex flex-col gap-3 shadow-md`}>
-              <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <Type className={`w-3.5 h-3.5 ${theme.accentText}`} />
-                Font Style
+            {/* 8. FONT STYLE */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-2.5 shadow-lg`}>
+              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Type className={`w-4 h-4 ${theme.accentText}`} />
+                Typography Font
               </span>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -1486,10 +1663,10 @@ TP: ${trade.takeProfit1}`
                       setFontFamily(f.id as FontFamily);
                       localStorage.setItem("bsa_font", f.id);
                     }}
-                    className={`py-2 px-1 rounded-xl text-xs font-bold border transition ${
+                    className={`py-2 rounded-xl text-xs font-black uppercase border transition ${
                       fontFamily === f.id
                         ? `${theme.buttonBg} border-white shadow-md`
-                        : "bg-slate-900 border-slate-700 text-slate-400 hover:text-white"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
                     }`}
                   >
                     {f.name}
@@ -1498,15 +1675,15 @@ TP: ${trade.takeProfit1}`
               </div>
             </div>
 
-            {/* 4. DISPLAY OVER OTHER APPS (Floating Icon Overlay) */}
-            <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-4 flex items-center justify-between shadow-md`}>
+            {/* 9. FLOATING OVERLAY & BACKGROUND VIDEO */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex items-center justify-between shadow-lg`}>
               <div className="flex flex-col gap-0.5 pr-2">
-                <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <AppWindow className={`w-3.5 h-3.5 ${theme.accentText}`} />
+                <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <AppWindow className={`w-4 h-4 ${theme.accentText}`} />
                   Display Over Other Apps
                 </span>
-                <p className="text-[11px] text-slate-400">
-                  Allows the floating robot icon and signal radar to stay active over charts.
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Keep floating sniper radar visible when charting in MT5.
                 </p>
               </div>
               <button
@@ -1515,46 +1692,19 @@ TP: ${trade.takeProfit1}`
                   setOverlayEnabled(next);
                   localStorage.setItem("bsa_overlay", String(next));
                 }}
-                className={`w-12 h-6 rounded-full transition-colors p-0.5 border ${
-                  overlayEnabled ? "bg-emerald-500 border-emerald-400" : "bg-slate-800 border-slate-600"
+                className={`w-14 h-7 rounded-full transition-colors p-0.5 border ${
+                  overlayEnabled ? "bg-emerald-500 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]" : "bg-slate-800 border-slate-700"
                 }`}
               >
-                <div className={`w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform ${overlayEnabled ? "translate-x-6" : "translate-x-0"}`} />
+                <div className={`w-6 h-6 rounded-full bg-white shadow-md transition-transform ${overlayEnabled ? "translate-x-7" : "translate-x-0"}`} />
               </button>
             </div>
 
-            {/* 5. BACKGROUND VIDEO OPTION */}
-            <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-4 flex flex-col gap-3 shadow-md`}>
+            {/* 10. LICENSE & SUPPORT */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-2 shadow-lg`}>
               <div className="flex items-center justify-between">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    <Video className={`w-3.5 h-3.5 ${theme.accentText}`} />
-                    Background Video
-                  </span>
-                  <p className="text-[11px] text-slate-400">
-                    Ambient animated tech/chart background behind the robot.
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    const next = !videoBgEnabled;
-                    setVideoBgEnabled(next);
-                    localStorage.setItem("bsa_video_bg", String(next));
-                  }}
-                  className={`w-12 h-6 rounded-full transition-colors p-0.5 border ${
-                    videoBgEnabled ? "bg-emerald-500 border-emerald-400" : "bg-slate-800 border-slate-600"
-                  }`}
-                >
-                  <div className={`w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform ${videoBgEnabled ? "translate-x-6" : "translate-x-0"}`} />
-                </button>
-              </div>
-            </div>
-
-            {/* 6. LICENSE & LOG OUT */}
-            <div className={`bg-[#081525] border ${theme.border} rounded-2xl p-4 flex flex-col gap-2 shadow-md`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <KeyRound className={`w-3.5 h-3.5 ${theme.accentText}`} />
+                <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <KeyRound className={`w-4 h-4 ${theme.accentText}`} />
                   Terminal License
                 </span>
                 <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
@@ -1563,29 +1713,29 @@ TP: ${trade.takeProfit1}`
               </div>
               <div className="text-xs text-slate-300 space-y-0.5">
                 <p><strong>License Key:</strong> <span className={`font-mono ${theme.accentText}`}>{activeKey}</span></p>
-                <p><strong>Assigned User:</strong> {clientInfo?.clientName || "Tman Capitals (Master)"}</p>
+                <p><strong>Assigned User:</strong> {clientInfo?.clientName || "Tman Capitals"}</p>
                 <p><strong>Expiry:</strong> {clientInfo?.expiresAt ? new Date(clientInfo.expiresAt).toLocaleDateString() : "Lifetime Verified"}</p>
               </div>
-              <button 
+              <button
                 onClick={handleLockOut}
-                className="mt-2 py-2 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-red-950/60 active:scale-95 transition"
+                className="mt-2 py-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 font-black text-xs uppercase flex items-center justify-center gap-1.5 hover:bg-red-950/60 active:scale-95 transition"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-4 h-4" />
                 Log Out / Switch License Key
               </button>
             </div>
 
-            {/* Mentor Support Direct Link */}
-            <div className="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex items-center justify-between text-xs">
+            {/* Mentor Direct WhatsApp */}
+            <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between text-xs shadow-lg">
               <div>
-                <p className="font-bold text-emerald-300">Mentor WhatsApp Direct</p>
+                <p className="font-black text-emerald-300 uppercase tracking-wide">Mentor WhatsApp Direct</p>
                 <p className="text-[11px] text-slate-300">+27 64 929 1083 (Tman Capitals)</p>
               </div>
-              <a 
-                href="https://wa.me/27649291083" 
-                target="_blank" 
+              <a
+                href="https://wa.me/27649291083"
+                target="_blank"
                 rel="noreferrer"
-                className="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-[11px] active:scale-95 transition"
+                className="px-4 py-2 rounded-xl bg-emerald-400 text-slate-950 font-black text-xs uppercase active:scale-95 transition shadow-md"
               >
                 Chat
               </a>

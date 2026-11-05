@@ -128,6 +128,7 @@ interface MarketPairSelectorProps {
   onSelectPair: (symbol: string) => void;
   selectedTimeframe: string;
   onSelectTimeframe: (tf: string) => void;
+  theme?: any;
 }
 
 export default function MarketPairSelector({
@@ -135,7 +136,15 @@ export default function MarketPairSelector({
   onSelectPair,
   selectedTimeframe,
   onSelectTimeframe,
+  theme,
 }: MarketPairSelectorProps) {
+  const primaryText = theme?.primaryText || "text-cyan-300";
+  const accentText = theme?.accentText || "text-cyan-400";
+  const border = theme?.border || "border-cyan-500/40";
+  const cardBorder = theme?.cardBorder || "border-cyan-400/60";
+  const badgeBg = theme?.badgeBg || "bg-cyan-950/80 border-cyan-500/40 text-cyan-300";
+  const buttonBg = theme?.buttonBg || "bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950";
+  const pulseColor = theme?.pulseColor || "bg-cyan-400";
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
@@ -170,13 +179,13 @@ export default function MarketPairSelector({
     <div className="flex flex-col gap-3 p-3.5 rounded-2xl bg-[#081525] border border-slate-800 shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#06b6d4]" />
+          <span className={`inline-block w-2.5 h-2.5 rounded-full ${pulseColor} animate-pulse`} />
           <span className="text-xs font-bold tracking-wider uppercase text-slate-300">
             Instrument & Asset
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-400/40 text-cyan-300 font-mono text-xs font-extrabold">
+          <span className={`px-2 py-0.5 rounded-lg ${badgeBg} font-mono text-xs font-extrabold`}>
             {selectedPair}
           </span>
           <button
@@ -199,7 +208,7 @@ export default function MarketPairSelector({
               onClick={() => onSelectPair(sym)}
               className={`py-1.5 px-2.5 rounded-xl border text-xs font-bold transition font-mono ${
                 isActive
-                  ? "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.25)]"
+                  ? `${badgeBg} border ${cardBorder} font-black shadow-md`
                   : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
               }`}
             >
@@ -210,7 +219,7 @@ export default function MarketPairSelector({
         <button
           type="button"
           onClick={() => setIsSearchOpen(true)}
-          className="py-1.5 px-2.5 rounded-xl border border-dashed border-cyan-500/50 bg-cyan-500/5 hover:bg-cyan-500/15 text-cyan-400 text-xs font-bold transition"
+          className={`py-1.5 px-2.5 rounded-xl border border-dashed ${border} bg-slate-900/40 ${accentText} text-xs font-bold transition`}
         >
           + Search All...
         </button>
@@ -228,7 +237,7 @@ export default function MarketPairSelector({
                 onClick={() => onSelectTimeframe(tf)}
                 className={`py-1 px-2.5 rounded-lg text-xs font-bold transition font-mono ${
                   isActive
-                    ? "bg-cyan-500 text-slate-950 shadow-[0_0_10px_rgba(6,182,212,0.4)]"
+                    ? `${buttonBg} shadow-md`
                     : "bg-slate-900/50 text-slate-400 hover:text-white border border-slate-800"
                 }`}
               >

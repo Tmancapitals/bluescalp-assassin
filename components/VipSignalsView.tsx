@@ -19,6 +19,8 @@ export default function VipSignalsView({
   const primaryText = theme?.primaryText || "text-cyan-300";
   const accentText = theme?.accentText || "text-cyan-400";
   const border = theme?.border || "border-cyan-500/30";
+  const cardBorder = theme?.cardBorder || "border-cyan-400/60";
+  const buttonBg = theme?.buttonBg || "bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950";
 
   const allSignals = signals && signals.length > 0 ? signals : [];
   const filtered = filter === "ALL" ? allSignals : allSignals.filter((s: any) => s.tradeType === filter);
@@ -152,13 +154,13 @@ export default function VipSignalsView({
               onClick={() => setFilter(tab.key)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
                 isSel
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)]"
+                  ? `${buttonBg} ${cardBorder} shadow-md`
                   : "bg-slate-900/80 text-slate-300 border-slate-800 hover:border-slate-700"
               }`}
             >
               <span>{tab.label}</span>
               {tab.badge && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isSel ? "bg-slate-950 text-cyan-300" : "bg-slate-800 text-slate-400"}`}>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isSel ? `bg-slate-950 ${primaryText}` : "bg-slate-800 text-slate-400"}`}>
                   {tab.badge}
                 </span>
               )}
@@ -286,7 +288,7 @@ export default function VipSignalsView({
                       onClick={() => speakSniper(sig)}
                       className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-cyan-300 transition"
                     >
-                      <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+                      <Volume2 className={`w-3.5 h-3.5 ${accentText}`} />
                       <span>Audio Alert</span>
                     </button>
 
@@ -305,7 +307,7 @@ export default function VipSignalsView({
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5 text-cyan-400" />
+                          <Copy className={`w-3.5 h-3.5 ${accentText}`} />
                           <span>Copy Levels</span>
                         </>
                       )}

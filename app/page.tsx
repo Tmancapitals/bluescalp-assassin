@@ -324,8 +324,18 @@ TP: ${trade.takeProfit1}`
       verifyKeyWithDatabase(saved, true);
     }
 
-    const savedHomeStyle = localStorage.getItem("bsa_home_style") as HomeStyle;
+    const savedHomeStyle = (localStorage.getItem("bsa_homestyle") || localStorage.getItem("bsa_home_style")) as HomeStyle;
     if (savedHomeStyle) setHomeStyle(savedHomeStyle);
+
+    const savedLayout = localStorage.getItem("bsa_layout") as LayoutStyle;
+    if (savedLayout) setLayoutStyle(savedLayout);
+
+    const savedTradePanel = localStorage.getItem("bsa_tradepanel") as TradePanelStyle;
+    if (savedTradePanel) setTradePanelStyle(savedTradePanel);
+
+    const savedScannerStyle = localStorage.getItem("bsa_scannerstyle") as ScannerStyle;
+    if (savedScannerStyle) setScannerStyle(savedScannerStyle);
+
     const savedAutoTrade = localStorage.getItem("bsa_autotrade");
     if (savedAutoTrade !== null) setAutoTrade(savedAutoTrade === "true");
 
@@ -681,7 +691,7 @@ TP: ${trade.takeProfit1}`
           <div className="w-full pt-4 border-t border-slate-800 flex flex-col gap-2.5 text-xs">
             <div className="flex justify-between items-center">
               <span className="font-bold text-slate-300">Need a License?</span>
-              <span className="${theme.accentText} font-bold">R200 (3 Mos) / R600 Life</span>
+              <span className={`${theme.accentText} font-bold`}>R200 (3 Mos) / R600 Life</span>
             </div>
             
             <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-slate-300 space-y-1 text-[11px]">
@@ -713,7 +723,11 @@ TP: ${trade.takeProfit1}`
 
   // 2. Unlocked Main Console
   return (
-    <div 
+    <div
+      id="bsa-app"
+      data-theme={themeColor}
+      data-home-style={homeStyle}
+      style={{ "--bsa-accent": theme.hex, "--bsa-soft": `${theme.hex}22`, "--bsa-border": `${theme.hex}99` } as React.CSSProperties}
       className={`min-h-screen bg-[#030811] text-slate-100 flex justify-center pb-8 select-none relative overflow-x-hidden ${getFontClass()}`}
       onTouchMove={handleDragMove}
       onTouchEnd={handleDragEnd}
@@ -761,7 +775,7 @@ TP: ${trade.takeProfit1}`
               /* =================================================================
                  COMMANDER LAYOUT: PORTRAIT & CARDS (REFERENCE UI)
                  ================================================================= */
-              <div className="flex flex-col items-center w-full gap-4 pt-1">
+              <div data-home-layout={layoutStyle} className={`bsa-home-layout flex flex-col items-center w-full gap-4 pt-1 ${layoutStyle === "center" ? "text-center" : ""}`} >
                 {/* Top Bar with Menu Hamburger */}
                 <div className="w-full flex items-center justify-end">
                   <button
@@ -773,7 +787,7 @@ TP: ${trade.takeProfit1}`
                 </div>
 
                 {/* Big Circular Avatar with Glowing Halo */}
-                <div className="relative w-44 h-44 rounded-full p-1 border-2 ${theme.cardBorder} ${theme.shadow} bg-[#051322] flex items-center justify-center overflow-hidden">
+                <div className={`relative w-44 h-44 rounded-full p-1 border-2 ${theme.cardBorder} ${theme.shadow} bg-[#051322] flex items-center justify-center overflow-hidden`}>
                   <img
                     src="/images/bluescalp-bot.jpg"
                     alt="BlueScalp Assassin"
@@ -787,20 +801,20 @@ TP: ${trade.takeProfit1}`
                   <h1 className="text-2xl font-black text-white tracking-wide uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                     BLUESCALP ASSASSIN EA
                   </h1>
-                  <p className="text-xs font-semibold ${theme.accentText} font-bold tracking-wide mt-0.5">
+                  <p className={`text-xs font-semibold ${theme.accentText} font-bold tracking-wide mt-0.5`}>
                     Tman Capitals
                   </p>
                 </div>
 
                 {/* Floating Action Pill Bar: NEWS | TRADE | SCAN */}
-                <div className="w-full max-w-sm rounded-[24px] border-2 ${theme.cardBorder} bg-[#06121f]/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between ${theme.shadow} my-1">
+                <div data-trade-panel={tradePanelStyle} className={`bsa-trade-panel w-full max-w-sm rounded-[24px] border-2 ${theme.cardBorder} bg-[#06121f]/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between ${theme.shadow} my-1`}>
                   {/* Signals */}
                   <button
                     onClick={() => setActiveTab("signals")}
                     className="flex flex-col items-center gap-1 group"
                   >
-                    <Radio className="w-5 h-5 ${theme.accentText} group-active:scale-90 transition" />
-                    <span className="text-[11px] font-extrabold ${theme.accentText} tracking-wider">SIGNALS</span>
+                    <Radio className={`w-5 h-5 ${theme.accentText} group-active:scale-90 transition`} />
+                    <span className={`text-[11px] font-extrabold ${theme.accentText} tracking-wider`}>SIGNALS</span>
                   </button>
 
                   {/* Center Glowing Play / Pause (Trade) */}
@@ -808,7 +822,7 @@ TP: ${trade.takeProfit1}`
                     onClick={() => setIsActive(!isActive)}
                     className="flex flex-col items-center gap-1 group"
                   >
-                    <div className="w-14 h-14 rounded-full border-2 ${theme.cardBorder} bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)] active:scale-95 transition">
+                    <div className={`w-14 h-14 rounded-full border-2 ${theme.cardBorder} bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center ${theme.shadow} active:scale-95 transition`}>
                       {isActive ? (
                         <Pause className="w-5 h-5 fill-white text-white" />
                       ) : (
@@ -823,8 +837,8 @@ TP: ${trade.takeProfit1}`
                     onClick={() => setActiveTab("scanner")}
                     className="flex flex-col items-center gap-1 group"
                   >
-                    <TrendingUp className="w-5 h-5 ${theme.accentText} group-active:scale-90 transition" />
-                    <span className="text-[11px] font-extrabold ${theme.accentText} tracking-wider">SCAN</span>
+                    <TrendingUp className={`w-5 h-5 ${theme.accentText} group-active:scale-90 transition`} />
+                    <span className={`text-[11px] font-extrabold ${theme.accentText} tracking-wider`}>SCAN</span>
                   </button>
                 </div>
 
@@ -838,7 +852,7 @@ TP: ${trade.takeProfit1}`
                   {/* Card 1: Active Bot */}
                   <div
                     onClick={() => setActiveTab("signals")}
-                    className="w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
+                    className={`w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 active:scale-[0.99] transition cursor-pointer`}
                   >
                     <div className="w-12 h-12 rounded-full border border-cyan-400/60 p-0.5 bg-slate-900 shrink-0 overflow-hidden shadow-[0_0_10px_rgba(6,182,212,0.4)]">
                       <img
@@ -860,7 +874,7 @@ TP: ${trade.takeProfit1}`
                   {/* Card 2: Chart Scanner */}
                   <div
                     onClick={() => setActiveTab("scanner")}
-                    className="w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
+                    className={`w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 active:scale-[0.99] transition cursor-pointer`}
                   >
                     <div className="w-12 h-12 rounded-full border border-cyan-400/60 flex items-center justify-center bg-cyan-950/60 text-cyan-300 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
                       <BarChart2 className="w-5 h-5" />
@@ -878,7 +892,7 @@ TP: ${trade.takeProfit1}`
                   {/* Card 3: Add New EA */}
                   <div
                     onClick={() => setModalOpen("connect")}
-                    className="w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.99] transition cursor-pointer"
+                    className={`w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 active:scale-[0.99] transition cursor-pointer`}
                   >
                     <div className="w-12 h-12 rounded-full border border-cyan-400/60 flex items-center justify-center bg-cyan-950/60 text-cyan-300 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
                       <Plus className="w-5 h-5" />
@@ -898,7 +912,7 @@ TP: ${trade.takeProfit1}`
               /* =================================================================
                  CLASSIC / PREMIUM DASHBOARD
                  ================================================================= */
-              <>
+              <div data-home-layout={layoutStyle} className={`bsa-home-layout flex flex-col w-full gap-4 ${layoutStyle === "center" ? "items-center text-center" : ""}`}>
             {/* HERO ROBOT CARD: Supports Rectangle OR Circle Shape */}
             {botShape === "rectangle" ? (
               <div className={`relative w-full rounded-[28px] border-2 ${theme.cardBorder} bg-[#06121f] p-4 ${theme.shadow} overflow-hidden flex flex-col justify-between min-h-[440px] transition-all`}>
@@ -1031,7 +1045,7 @@ TP: ${trade.takeProfit1}`
             </button>
 
             {/* 4 CIRCULAR ACTION BUTTONS WITH EXACT USER NAMES */}
-            <div className={`w-full bg-[#081525] border ${theme.border} rounded-2xl py-3.5 px-3 flex items-center justify-between shadow-lg`}>
+            <div data-trade-panel={tradePanelStyle} className={`bsa-trade-panel w-full bg-[#081525] border ${theme.border} rounded-2xl py-3.5 px-3 flex items-center justify-between shadow-lg`}>
               {/* 1. Connect */}
               <button onClick={() => setModalOpen("connect")} className="flex flex-col items-center gap-1.5 group">
                 <div className={`w-12 h-12 rounded-full bg-slate-900 border ${theme.border} flex items-center justify-center ${theme.accentText} shadow-md group-active:scale-95 transition`}>
@@ -1139,7 +1153,7 @@ TP: ${trade.takeProfit1}`
                 </div>
               </div>
             </div>
-              </>
+              </div>
             )}
           </>
         )}
@@ -1151,7 +1165,7 @@ TP: ${trade.takeProfit1}`
 
         {/* VIEW 3: SCANNER TAB (With Trading Style: Scalp, Intraday, Swing) */}
         {activeTab === "scanner" && (
-          <div className="w-full flex flex-col gap-3.5">
+          <div data-scanner-mode={scannerStyle} className="bsa-scanner-view w-full flex flex-col gap-3.5">
             {/* SCANNER HEADER */}
             <div className={`pb-2.5 border-b ${theme.border} flex items-center justify-between`}>
               <div>
@@ -1268,6 +1282,7 @@ TP: ${trade.takeProfit1}`
                 onSelectPair={setSelectedScannerPair}
                 selectedTimeframe={selectedScannerTf}
                 onSelectTimeframe={setSelectedScannerTf}
+                theme={theme}
               />
             </div>
 

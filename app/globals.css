@@ -24,3 +24,39 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* BlueScalp user-selected theme: accent colors apply across every app view. */
+#bsa-app[data-theme] [class*="text-cyan-"],
+#bsa-app[data-theme] [class*="text-blue-"] { color: var(--bsa-accent) !important; }
+#bsa-app[data-theme] [class*="border-cyan-"],
+#bsa-app[data-theme] [class*="border-blue-"] { border-color: var(--bsa-border) !important; }
+#bsa-app[data-theme] [class*="bg-cyan-"],
+#bsa-app[data-theme] [class*="bg-blue-"] { background-color: var(--bsa-soft) !important; }
+#bsa-app[data-theme] [class*="from-cyan-"],
+#bsa-app[data-theme] [class*="from-blue-"] { --tw-gradient-from: var(--bsa-accent) var(--tw-gradient-from-position) !important; }
+#bsa-app[data-theme] [class*="to-cyan-"],
+#bsa-app[data-theme] [class*="to-blue-"] { --tw-gradient-to: var(--bsa-accent) var(--tw-gradient-to-position) !important; }
+#bsa-app[data-theme] [class*="shadow-[0_0_"] { --tw-shadow-color: var(--bsa-soft); }
+
+/* Home style and dashboard layout options are visual modes, not Settings-only labels. */
+#bsa-app[data-home-style="premium"] .bsa-home-layout > * { filter: saturate(1.08); }
+#bsa-app[data-home-style="classic"] .bsa-home-layout > * { border-radius: 1rem; }
+#bsa-app .bsa-home-layout[data-home-layout="center"] { align-items: center; text-align: center; }
+#bsa-app .bsa-home-layout[data-home-layout="dash"] > :last-child,
+#bsa-app .bsa-home-layout[data-home-layout="card"] > :last-child { width: 100%; }
+#bsa-app .bsa-home-layout[data-home-layout="cine"] { gap: 1.25rem; }
+#bsa-app .bsa-home-layout[data-home-layout="card"] > * { border-radius: 1.5rem; }
+
+/* Trade panel options change the action-control layout on both home variants. */
+#bsa-app .bsa-trade-panel[data-trade-panel="circle"] { justify-content: center; gap: 1rem; border-radius: 9999px; }
+#bsa-app .bsa-trade-panel[data-trade-panel="grid"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+#bsa-app .bsa-trade-panel[data-trade-panel="float"] { position: relative; transform: translateY(-.25rem); box-shadow: 0 12px 34px var(--bsa-soft); }
+#bsa-app .bsa-trade-panel[data-trade-panel="pill"] { border-radius: 9999px; }
+
+/* Scanner mode changes the scanner header/panel presentation. */
+#bsa-app .bsa-scanner-view[data-scanner-mode="radar"] > :first-child { border-radius: 1rem; padding: .8rem; background: radial-gradient(circle at 90% 10%, var(--bsa-soft), transparent 45%); }
+#bsa-app .bsa-scanner-view[data-scanner-mode="terminal"] { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+#bsa-app .bsa-scanner-view[data-scanner-mode="power"] > :first-child { border-bottom-width: 3px; }
+#bsa-app .bsa-scanner-view[data-scanner-mode="hybrid"] > :first-child { padding: .6rem; border-radius: 1rem; background: linear-gradient(110deg, var(--bsa-soft), transparent 70%); }
+#bsa-app .bsa-scanner-view[data-scanner-mode="pill"] > :first-child { border-radius: 9999px; }

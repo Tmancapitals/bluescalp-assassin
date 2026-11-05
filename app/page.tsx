@@ -771,20 +771,29 @@ TP: ${trade.takeProfit1}`
         {/* VIEW 1: HOME TAB */}
         {activeTab === "home" && (
           <>
+            {/* UNIVERSAL TOP MENU BAR - AVAILABLE ON EVERY LAYOUT FORMAT */}
+            <div className="w-full flex items-center justify-between pt-1 pb-2 px-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">
+                  BLUESCALP ASSASSIN
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveTab("settings")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/15 bg-slate-900/90 text-white shadow-lg active:scale-95 transition hover:bg-slate-800"
+                title="Settings & Layout Menu"
+              >
+                <Menu className="w-4 h-4 text-cyan-400" />
+                <span className="text-[11px] font-extrabold uppercase tracking-wider">Menu</span>
+              </button>
+            </div>
+
             {homeStyle === "commander" ? (
               /* =================================================================
                  COMMANDER LAYOUT: PORTRAIT & CARDS (REFERENCE UI)
                  ================================================================= */
-              <div data-home-layout={layoutStyle} className={`bsa-home-layout flex flex-col items-center w-full gap-4 pt-1 ${layoutStyle === "center" ? "text-center" : ""}`} >
-                {/* Top Bar with Menu Hamburger */}
-                <div className="w-full flex items-center justify-end">
-                  <button
-                    onClick={() => setActiveTab("settings")}
-                    className="w-10 h-10 rounded-full border border-white/10 bg-slate-900/80 flex items-center justify-center text-white shadow-[0_0_12px_rgba(6,182,212,0.25)] active:scale-95 transition"
-                  >
-                    <Menu className="w-5 h-5" />
-                  </button>
-                </div>
+              <div data-home-layout={layoutStyle} className={`bsa-home-layout flex flex-col items-center w-full gap-4 ${layoutStyle === "center" ? "text-center" : ""}`} >
 
                 {/* Big Circular Avatar with Glowing Halo */}
                 <div className={`relative w-44 h-44 rounded-full p-1 border-2 ${theme.cardBorder} ${theme.shadow} bg-[#051322] flex items-center justify-center overflow-hidden`}>
@@ -936,9 +945,18 @@ TP: ${trade.takeProfit1}`
                     {isActive ? "BOT ACTIVE" : "BOT PAUSED"}
                   </div>
 
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-900/80 border border-slate-700/60 text-[10px] font-mono text-slate-300 backdrop-blur-md">
-                    <Clock className="w-3 h-3 text-cyan-400" />
-                    SAST SESSIONS
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-900/80 border border-slate-700/60 text-[10px] font-mono text-slate-300 backdrop-blur-md">
+                      <Clock className="w-3 h-3 text-cyan-400" />
+                      SAST SESSIONS
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("settings")}
+                      className="p-1 rounded-full border border-white/20 bg-slate-900/90 text-white shadow-md active:scale-95 transition hover:bg-slate-800"
+                      title="Settings Menu"
+                    >
+                      <Menu className="w-3.5 h-3.5 text-white" />
+                    </button>
                   </div>
                 </div>
 
@@ -988,9 +1006,18 @@ TP: ${trade.takeProfit1}`
                     {isActive ? "BOT ACTIVE" : "BOT PAUSED"}
                   </div>
 
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-[11px] font-extrabold text-emerald-300">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    LIVE
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-[11px] font-extrabold text-emerald-300">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      LIVE
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("settings")}
+                      className="p-1 rounded-full border border-white/20 bg-slate-900/90 text-white shadow-md active:scale-95 transition hover:bg-slate-800"
+                      title="Settings Menu"
+                    >
+                      <Menu className="w-3.5 h-3.5 text-white" />
+                    </button>
                   </div>
                 </div>
 

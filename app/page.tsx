@@ -2134,70 +2134,122 @@ TP: ${trade.takeProfit1}`
 
       </div>
 
-      {/* FREELY DRAGGABLE CIRCULAR FLOATING ICON */}
+      {/* FLOATING BOT WIDGET & EXPANDED CONTROL CARD */}
       {overlayEnabled && (
-        <aside
-          aria-label="Live bot floating status"
-          style={{
-            position: "fixed",
-            left: `${botPos.x}px`,
-            top: `${botPos.y}px`,
-            zIndex: 9999,
-            touchAction: "none",
-          }}
-          onTouchStart={handleDragStart}
-          onMouseDown={handleDragStart}
-          className="flex flex-col items-end cursor-grab active:cursor-grabbing"
-        >
+        <>
           {widgetExpanded && (
-            <div className="w-[min(20rem,calc(100vw-2rem))] mb-2 rounded-[28px] border border-white/20 bg-[#07100f]/95 backdrop-blur-xl p-4 shadow-[0_12px_48px_rgba(0,0,0,0.65),0_0_30px_rgba(6,182,212,0.28)] text-xs flex flex-col gap-2.5">
+            <div
+              className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-[2px] transition-opacity"
+              onClick={() => setWidgetExpanded(false)}
+            />
+          )}
+
+          {widgetExpanded ? (
+            <div
+              style={{
+                position: "fixed",
+                left: `${typeof window !== "undefined" ? Math.max(12, Math.min(botPos.x - 14, window.innerWidth - 332)) : botPos.x}px`,
+                top: `${typeof window !== "undefined" ? Math.max(12, Math.min(botPos.y - 14, window.innerHeight - 260)) : botPos.y}px`,
+                zIndex: 9999,
+              }}
+              className="w-[min(20rem,calc(100vw-2rem))] rounded-[28px] border border-white/20 bg-[#07100f]/95 backdrop-blur-xl p-3.5 shadow-[0_12px_48px_rgba(0,0,0,0.65),0_0_30px_rgba(6,182,212,0.28)] text-xs flex flex-col gap-2.5 animate-in zoom-in-95 duration-150"
+            >
               <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-cyan-200 shadow-[0_0_16px_rgba(6,182,212,0.55)] shrink-0">
-                  <img src="/images/bluescalp-bot.jpg" alt="BlueScalp Assassin EA" className="w-full h-full object-cover" />
-                </div>
-                <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => setWidgetExpanded(false)}
+                  className="w-14 h-14 rounded-full overflow-hidden border-2 border-cyan-300 shadow-[0_0_16px_rgba(6,182,212,0.55)] shrink-0 active:scale-95 transition cursor-pointer hover:border-cyan-200"
+                  title="Tap bot icon to close"
+                  aria-label="Close bot controls"
+                >
+                  <img src="/images/bluescalp-bot.jpg" alt="BlueScalp Assassin EA" className="w-full h-full object-cover pointer-events-none" />
+                </button>
+                <div
+                  className="min-w-0 flex-1 cursor-pointer select-none"
+                  onClick={() => setWidgetExpanded(false)}
+                  title="Tap to close"
+                >
                   <p className="font-black text-white tracking-[0.14em] text-[11px]">BLUESCALP ASSASSIN EA</p>
                   <p className={`flex items-center gap-1.5 font-semibold mt-0.5 ${isActive ? "text-emerald-300" : "text-slate-400"}`}>
                     <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
                     {isActive ? "Robot running" : "Robot stopped"}
                   </p>
                 </div>
-                <button onClick={() => setWidgetExpanded(false)} className="text-slate-400 hover:text-white" aria-label="Close bot controls">
-                  <ChevronDown className="w-4 h-4" />
+                <button
+                  type="button"
+                  onClick={() => setWidgetExpanded(false)}
+                  className="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition active:scale-90"
+                  aria-label="Close bot controls"
+                  title="Close"
+                >
+                  <ChevronDown className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="flex items-center justify-around py-3">
-                <button onClick={() => { setWidgetExpanded(false); setActiveTab("signals"); }} className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition">
+              <div className="flex items-center justify-around py-2.5">
+                <button
+                  type="button"
+                  onClick={() => { setWidgetExpanded(false); setActiveTab("signals"); }}
+                  className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition active:scale-95"
+                >
                   <TrendingUp className="w-7 h-7" />
                   <span className="text-[10px] font-black tracking-[0.18em]">QUOTES</span>
                 </button>
-                <button onClick={() => setIsActive((active) => !active)} className={`w-16 h-16 rounded-full border-2 border-white/80 bg-slate-950 flex items-center justify-center active:scale-95 transition ${isActive ? "text-red-400 shadow-[0_0_18px_rgba(239,68,68,0.35)]" : "text-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.35)]"}`} aria-label={isActive ? "Stop bot" : "Start bot"}>
+                <button
+                  type="button"
+                  onClick={() => setIsActive((active) => !active)}
+                  className={`w-16 h-16 rounded-full border-2 border-white/80 bg-slate-950 flex items-center justify-center active:scale-95 transition ${
+                    isActive ? "text-red-400 shadow-[0_0_18px_rgba(239,68,68,0.35)]" : "text-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.35)]"
+                  }`}
+                  aria-label={isActive ? "Stop bot" : "Start bot"}
+                >
                   {isActive ? <Square className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
                 </button>
-                <button onClick={() => { setWidgetExpanded(false); setOverlayEnabled(false); localStorage.setItem("bsa_overlay", "false"); }} className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition" aria-label="Hide floating bot widget">
+                <button
+                  type="button"
+                  onClick={() => { setWidgetExpanded(false); setOverlayEnabled(false); localStorage.setItem("bsa_overlay", "false"); }}
+                  className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition active:scale-95"
+                  aria-label="Hide floating bot widget"
+                >
                   <X className="w-7 h-7" />
                   <span className="text-[10px] font-black tracking-[0.18em]">REMOVE</span>
                 </button>
               </div>
-              <p className="text-center text-slate-400 border-t border-white/10 pt-2">Monitoring signals</p>
+              <p className="text-center text-slate-400 border-t border-white/10 pt-2 text-[11px] font-medium">Monitoring signals</p>
             </div>
+          ) : (
+            <aside
+              aria-label="Live bot floating status"
+              style={{
+                position: "fixed",
+                left: `${botPos.x}px`,
+                top: `${botPos.y}px`,
+                zIndex: 9999,
+                touchAction: "none",
+              }}
+              onTouchStart={handleDragStart}
+              onMouseDown={handleDragStart}
+              className="cursor-grab active:cursor-grabbing"
+            >
+              <button
+                type="button"
+                onClick={handleIconClick}
+                className={`relative w-14 h-14 rounded-full border-2 ${theme.cardBorder} bg-slate-900 shadow-[0_0_22px_rgba(6,182,212,0.6)] flex items-center justify-center p-0.5 active:scale-95 transition ${!isActive ? "grayscale" : ""}`}
+                title="Tap to open BlueScalp Assassin controls"
+                aria-label="Open bot controls"
+              >
+                <div className="w-full h-full rounded-full overflow-hidden pointer-events-none">
+                  <img
+                    src="/images/bluescalp-bot.jpg"
+                    alt="Bot Icon"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className={`absolute top-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-[#030811] ${isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
+              </button>
+            </aside>
           )}
-
-          <button
-            onClick={handleIconClick}
-            className={`relative w-14 h-14 rounded-full border-2 ${theme.cardBorder} bg-slate-900 shadow-[0_0_22px_rgba(6,182,212,0.6)] flex items-center justify-center p-0.5 active:scale-95 transition ${!isActive ? "grayscale" : ""}`}
-          >
-            <div className="w-full h-full rounded-full overflow-hidden pointer-events-none">
-              <img
-                src="/images/bluescalp-bot.jpg"
-                alt="Bot Icon"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <span className={`absolute top-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-[#030811] ${isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
-          </button>
-        </aside>
+        </>
       )}
 
       {/* STATUS MODAL (Shows bot signals details) */}

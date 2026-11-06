@@ -51,14 +51,55 @@ import {
   Check,
   Mic,
   MicOff,
-  Plus
+  Plus,
+  Link2,
+  Unlink,
+  Eye,
+  EyeOff,
+  Server
 } from "lucide-react";
 
 const ALLOWED_BROKERS = [
-  { id: "rcg", name: "RCG Markets", servers: ["RCGMarkets-Live", "RCGMarkets-Demo"] },
-  { id: "hfm", name: "HFM (HF Markets)", servers: ["HFMarketsSA-Live", "HFMarkets-Live2"] },
-  { id: "fxpro", name: "FxPro", servers: ["FxPro-MT5-Live", "FxPro-MT5-Real02"] },
-  { id: "justmarkets", name: "JustMarkets", servers: ["JustMarkets-Live", "JustMarkets-Live2"] },
+  {
+    id: "xm",
+    name: "XM",
+    servers: ["XMGlobal-Real", "XMGlobal-Real 2", "XMGlobal-Real 3", "XMGlobal-Real 4", "XMGlobal-Demo"],
+  },
+  {
+    id: "headway",
+    name: "Headway",
+    servers: ["Headway-Real", "Headway-Real 2", "Headway-Demo"],
+  },
+  {
+    id: "razormarkets",
+    name: "Razor Markets",
+    servers: ["RazorMarkets-Live", "RazorMarkets-Live2", "RazorMarkets-Demo"],
+  },
+  {
+    id: "rcg",
+    name: "RCG Markets",
+    servers: ["RCGMarkets-Live", "RCGMarkets-Live2", "RCGMarkets-Demo"],
+  },
+  {
+    id: "hfm",
+    name: "HFM",
+    servers: ["HFMarketsSA-Live", "HFMarketsSA-Live2", "HFMarketsSA-Live3", "HFMarkets-Demo"],
+  },
+  {
+    id: "deriv",
+    name: "Deriv",
+    servers: ["Deriv-Server", "Deriv-Server-02", "Deriv-Demo"],
+  },
+  {
+    id: "justmarkets",
+    name: "JustMarkets",
+    servers: ["JustMarkets-Live", "JustMarkets-Live2", "JustMarkets-Live3", "JustMarkets-Demo"],
+  },
+  {
+    id: "vaultmarket",
+    name: "Vault Markets",
+    servers: ["VaultMarkets-Live", "VaultMarkets-Live2", "VaultMarkets-Demo"],
+  },
 ];
 
 type HomeStyle = "classic" | "premium" | "commander";
@@ -215,9 +256,9 @@ TP: ${trade.takeProfit1}`
   const chartFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const toggleEngine = (id: string) => {
-    setActiveEngines(prev => 
-      prev.includes(id) 
-        ? (prev.length > 1 ? prev.filter(x => x !== id) : prev) 
+    setActiveEngines(prev =>
+      prev.includes(id)
+        ? (prev.length > 1 ? prev.filter(x => x !== id) : prev)
         : [...prev, id]
     );
   };
@@ -313,8 +354,14 @@ TP: ${trade.takeProfit1}`
   // Broker connection state
   const [selectedBroker, setSelectedBroker] = useState(ALLOWED_BROKERS[0].name);
   const [mt5Login, setMt5Login] = useState("");
+  const [mt5Password, setMt5Password] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [mt5Server, setMt5Server] = useState(ALLOWED_BROKERS[0].servers[0]);
+  const [customServerInput, setCustomServerInput] = useState("");
+  const [isCustomServer, setIsCustomServer] = useState(false);
   const [brokerConnected, setBrokerConnected] = useState(false);
+  const [brokerError, setBrokerError] = useState("");
+  const [brokerSuccess, setBrokerSuccess] = useState("");
 
   // Live signals state
   const [signals, setSignals] = useState<any[]>([]);
@@ -358,6 +405,34 @@ TP: ${trade.takeProfit1}`
 
     const savedVideo = localStorage.getItem("bsa_video_bg");
     if (savedVideo !== null) setVideoBgEnabled(savedVideo === "true");
+
+    const savedBrokerConnected = localStorage.getItem("bsa_broker_connected");
+    if (savedBrokerConnected === "true") setBrokerConnected(true);
+
+    const savedBroker = localStorage.getItem("bsa_mt5_broker");
+    if (savedBroker) {
+      setSelectedBroker(savedBroker);
+      const matched = ALLOWED_BROKERS.find((b) => b.name.toLowerCase() === savedBroker.toLowerCase());
+      if (matched && matched.servers.length > 0) {
+        setMt5Server(matched.servers[0]);
+      }
+    }
+
+    const savedServer = localStorage.getItem("bsa_mt5_server");
+    if (savedServer) {
+      setMt5Server(savedServer);
+      const b = ALLOWED_BROKERS.find((item) => item.name === (savedBroker || ALLOWED_BROKERS[0].name));
+      if (b && !b.servers.includes(savedServer)) {
+        setIsCustomServer(true);
+        setCustomServerInput(savedServer);
+      }
+    }
+
+    const savedLogin = localStorage.getItem("bsa_mt5_login");
+    if (savedLogin) setMt5Login(savedLogin);
+
+    const savedPassword = localStorage.getItem("bsa_mt5_password");
+    if (savedPassword) setMt5Password(savedPassword);
   }, []);
 
   // Poll for live signals every 10 seconds if active & unlocked
@@ -367,6 +442,58 @@ TP: ${trade.takeProfit1}`
     const interval = setInterval(fetchSignals, 10000);
     return () => clearInterval(interval);
   }, [isUnlocked, activeKey]);
+
+  const handleSaveBroker = () => {
+    if (!mt5Login.trim()) {
+      setBrokerError("Please enter your MT5 trading account number");
+      return;
+    }
+    if (!mt5Password.trim()) {
+      setBrokerError("Please enter your MT5 trading account password");
+      return;
+    }
+    const finalServer = isCustomServer ? (customServerInput.trim() || mt5Server) : mt5Server;
+    if (!finalServer.trim()) {
+      setBrokerError("Please select or enter an MT5 server");
+      return;
+    }
+
+    setBrokerError("");
+    setMt5Server(finalServer);
+    setBrokerConnected(true);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("bsa_broker_connected", "true");
+      localStorage.setItem("bsa_mt5_broker", selectedBroker);
+      localStorage.setItem("bsa_mt5_server", finalServer);
+      localStorage.setItem("bsa_mt5_login", mt5Login.trim());
+      localStorage.setItem("bsa_mt5_password", mt5Password);
+    }
+
+    setBrokerSuccess(`Linked ${selectedBroker} Account #${mt5Login.trim()} successfully.`);
+    setTimeout(() => {
+      setBrokerSuccess("");
+      setModalOpen(null);
+    }, 1200);
+  };
+
+  const handleUnlinkBroker = () => {
+    setBrokerConnected(false);
+    setMt5Login("");
+    setMt5Password("");
+    setCustomServerInput("");
+    setIsCustomServer(false);
+    setBrokerError("");
+    setBrokerSuccess("Broker account unlinked.");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("bsa_broker_connected");
+      localStorage.removeItem("bsa_mt5_broker");
+      localStorage.removeItem("bsa_mt5_server");
+      localStorage.removeItem("bsa_mt5_login");
+      localStorage.removeItem("bsa_mt5_password");
+    }
+    setTimeout(() => setBrokerSuccess(""), 1500);
+  };
 
   const fetchSignals = async () => {
     if (!activeKey) return;
@@ -705,8 +832,8 @@ TP: ${trade.takeProfit1}`
                 <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
                 Enter Access License Key
               </label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="e.g. BSA-847-X92-310"
                 value={licenseInput}
                 onChange={(e) => setLicenseInput(e.target.value.toUpperCase())}
@@ -736,24 +863,24 @@ TP: ${trade.takeProfit1}`
               <span className="font-bold text-slate-300">Need a License?</span>
               <span className={`${theme.accentText} font-bold`}>R200 (3 Mos) / R600 Life</span>
             </div>
-            
+
             <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-slate-300 space-y-1 text-[11px]">
               <p><strong>Bank:</strong> Capitec Bank</p>
               <p><strong>Account Holder:</strong> T SEAKE</p>
               <p><strong>Account Number:</strong> 2201301286</p>
             </div>
 
-            <a 
-              href="https://wa.me/27649291083?text=Hi%20Thabang,%20I%20want%20to%20buy%20a%20license%20key%20for%20BlueScalp%20Assassin" 
-              target="_blank" 
+            <a
+              href="https://wa.me/27649291083?text=Hi%20Thabang,%20I%20want%20to%20buy%20a%20license%20key%20for%20BlueScalp%20Assassin"
+              target="_blank"
               rel="noreferrer"
               className="w-full py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-500/30 transition text-center"
             >
               Request Key on WhatsApp (+27 64 929 1083)
             </a>
 
-            <a 
-              href="/web" 
+            <a
+              href="/web"
               className="w-full py-2 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-400 hover:text-cyan-300 text-[11px] font-semibold text-center transition"
             >
               Visit Website & Learn More →
@@ -779,11 +906,11 @@ TP: ${trade.takeProfit1}`
     >
       {/* Background Video Option */}
       {videoBgEnabled && (
-        <video 
-          autoPlay 
-          loop 
-          muted 
-          playsInline 
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
           className="fixed inset-0 w-full h-full object-cover opacity-20 pointer-events-none z-0"
         >
           <source src={videoBgUrl} type="video/mp4" />
@@ -817,7 +944,7 @@ TP: ${trade.takeProfit1}`
             </button>
           </header>
         )}
-        
+
         {/* VIEW 1: HOME TAB */}
         {activeTab === "home" && (
           <>
@@ -830,6 +957,18 @@ TP: ${trade.takeProfit1}`
                 </span>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setModalOpen("connect")}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border shadow-md active:scale-95 transition text-[11px] font-bold ${
+                    brokerConnected
+                      ? "border-emerald-500/50 bg-emerald-950/70 text-emerald-300 hover:bg-emerald-900/70 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                      : "border-cyan-500/40 bg-cyan-950/70 text-cyan-300 hover:bg-cyan-900/70"
+                  }`}
+                  title="Connect MT5 Broker"
+                >
+                  <Link2 className={`w-3.5 h-3.5 ${brokerConnected ? "text-emerald-400" : "text-cyan-400"}`} />
+                  <span>{brokerConnected ? "Broker Live" : "Broker"}</span>
+                </button>
                 <button
                   onClick={() => setModalOpen("license")}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-cyan-500/40 bg-cyan-950/70 text-cyan-300 shadow-md active:scale-95 transition hover:bg-cyan-900/70 text-[11px] font-bold"
@@ -958,7 +1097,34 @@ TP: ${trade.takeProfit1}`
                     </div>
                   </div>
 
-                  {/* Card 3: License & Access Section */}
+                  {/* Card 3: Connect Broker */}
+                  <div
+                    onClick={() => setModalOpen("connect")}
+                    className={`w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 active:scale-[0.99] transition cursor-pointer hover:border-cyan-400/50`}
+                  >
+                    <div className="w-12 h-12 rounded-full border border-cyan-400/60 flex items-center justify-center bg-cyan-950/60 text-cyan-300 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+                      <Link2 className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                          CONNECT BROKER
+                        </h3>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
+                          brokerConnected
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                            : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                        }`}>
+                          {brokerConnected ? "LINKED" : "UNLINKED"}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                        {brokerConnected ? `${selectedBroker} • #${mt5Login || "MT5"}` : "MT5 ACCOUNT & SERVER BRIDGE"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card 4: License & Access Section */}
                   <div
                     onClick={() => setModalOpen("license")}
                     className={`w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 active:scale-[0.99] transition cursor-pointer hover:border-cyan-400/50`}
@@ -991,9 +1157,9 @@ TP: ${trade.takeProfit1}`
             {botShape === "rectangle" ? (
               <div className={`relative w-full rounded-[28px] border-2 ${theme.cardBorder} bg-[#06121f] p-4 ${theme.shadow} overflow-hidden flex flex-col justify-between min-h-[440px] transition-all`}>
                 <div className="absolute inset-0 z-0">
-                  <img 
-                    src="/images/bluescalp-bot.jpg" 
-                    alt="BlueScalp Robot" 
+                  <img
+                    src="/images/bluescalp-bot.jpg"
+                    alt="BlueScalp Robot"
                     className="w-full h-full object-cover object-top"
                   />
                   <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#06121f] via-60%" />
@@ -1002,8 +1168,8 @@ TP: ${trade.takeProfit1}`
                 {/* Status Header */}
                 <div className="relative z-10 flex items-center justify-between">
                   <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wider backdrop-blur-md border uppercase transition ${
-                    isActive 
-                      ? "bg-emerald-500/20 border-emerald-400/50 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.35)]" 
+                    isActive
+                      ? "bg-emerald-500/20 border-emerald-400/50 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.35)]"
                       : "bg-amber-500/20 border-amber-400/50 text-amber-300"
                   }`}>
                     <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
@@ -1063,8 +1229,8 @@ TP: ${trade.takeProfit1}`
               <div className={`w-full rounded-[28px] border-2 ${theme.cardBorder} bg-[#06121f]/70 p-5 ${theme.shadow} flex flex-col items-center gap-4 text-center backdrop-blur-md`}>
                 <div className="w-full flex items-center justify-between">
                   <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wider border uppercase ${
-                    isActive 
-                      ? "bg-emerald-500/20 border-emerald-400/50 text-emerald-300" 
+                    isActive
+                      ? "bg-emerald-500/20 border-emerald-400/50 text-emerald-300"
                       : "bg-amber-500/20 border-amber-400/50 text-amber-300"
                   }`}>
                     <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
@@ -1088,9 +1254,9 @@ TP: ${trade.takeProfit1}`
 
                 {/* Circular image floating in the middle allowing background to appear */}
                 <div className={`w-48 h-48 rounded-full border-4 ${theme.cardBorder} overflow-hidden ${theme.shadow} p-1 bg-slate-900 my-2`}>
-                  <img 
-                    src="/images/bluescalp-bot.jpg" 
-                    alt="BlueScalp Robot" 
+                  <img
+                    src="/images/bluescalp-bot.jpg"
+                    alt="BlueScalp Robot"
                     className="w-full h-full object-cover rounded-full"
                   />
                 </div>
@@ -1118,8 +1284,8 @@ TP: ${trade.takeProfit1}`
             <button
               onClick={() => setIsActive(!isActive)}
               className={`w-full py-4 rounded-2xl border-2 font-black tracking-widest text-sm uppercase flex items-center justify-center gap-2.5 transition active:scale-[0.98] ${
-                isActive 
-                  ? "bg-[#061424] border-cyan-400 text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.3)]" 
+                isActive
+                  ? "bg-[#061424] border-cyan-400 text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.3)]"
                   : "bg-[#061d15] border-emerald-400 text-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.3)]"
               }`}
             >
@@ -1140,10 +1306,13 @@ TP: ${trade.takeProfit1}`
             <div data-trade-panel={tradePanelStyle} className={`bsa-trade-panel w-full bg-[#081525] border ${theme.border} rounded-2xl py-3.5 px-3 flex items-center justify-between shadow-lg`}>
               {/* 1. Connect */}
               <button onClick={() => setModalOpen("connect")} className="flex flex-col items-center gap-1.5 group">
-                <div className={`w-12 h-12 rounded-full bg-slate-900 border ${theme.border} flex items-center justify-center ${theme.accentText} shadow-md group-active:scale-95 transition`}>
-                  <DollarSign className="w-5 h-5" />
+                <div className={`relative w-12 h-12 rounded-full bg-slate-900 border ${theme.border} flex items-center justify-center ${theme.accentText} shadow-md group-active:scale-95 transition`}>
+                  <Link2 className="w-5 h-5" />
+                  {brokerConnected && (
+                    <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#081525]" />
+                  )}
                 </div>
-                <span className="text-[11px] font-medium text-slate-300">Connect</span>
+                <span className="text-[11px] font-medium text-slate-300">{brokerConnected ? "Connected" : "Connect"}</span>
               </button>
 
               {/* 2. Chart Scanner (full name) */}
@@ -1221,7 +1390,34 @@ TP: ${trade.takeProfit1}`
                 </div>
               </div>
 
-              {/* Card 3: License & Access Section */}
+              {/* Card 3: Connect Broker */}
+              <div
+                onClick={() => setModalOpen("connect")}
+                className="w-full bg-[#06121f] border border-cyan-500/30 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg active:scale-[0.99] transition cursor-pointer hover:border-cyan-400/50"
+              >
+                <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+                  <Link2 className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-100 tracking-wide uppercase">
+                      CONNECT BROKER
+                    </h3>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
+                      brokerConnected
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                        : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    }`}>
+                      {brokerConnected ? "LINKED" : "UNLINKED"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    {brokerConnected ? `${selectedBroker} • #${mt5Login || "MT5"}` : "MT5 ACCOUNT & SERVER BRIDGE"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 4: License & Access Section */}
               <div
                 onClick={() => setModalOpen("license")}
                 className="w-full bg-[#06121f] border border-cyan-500/30 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg active:scale-[0.99] transition cursor-pointer hover:border-cyan-400/50"
@@ -1272,8 +1468,8 @@ TP: ${trade.takeProfit1}`
                   onClick={() => setVoiceEnabled(!voiceEnabled)}
                   title={voiceEnabled ? "Voice Enabled" : "Voice Muted"}
                   className={`p-2 rounded-xl border transition ${
-                    voiceEnabled 
-                      ? "bg-cyan-500/20 border-cyan-400/50 text-cyan-300" 
+                    voiceEnabled
+                      ? "bg-cyan-500/20 border-cyan-400/50 text-cyan-300"
                       : "bg-slate-900 border-slate-700 text-slate-500"
                   }`}
                 >
@@ -1284,8 +1480,8 @@ TP: ${trade.takeProfit1}`
                   onClick={() => setShowTuningModal(!showTuningModal)}
                   title="Analyzer Sensitivity & Tuning"
                   className={`p-2 rounded-xl border transition ${
-                    showTuningModal 
-                      ? "bg-cyan-500/20 border-cyan-400/50 text-cyan-300" 
+                    showTuningModal
+                      ? "bg-cyan-500/20 border-cyan-400/50 text-cyan-300"
                       : "bg-slate-900 border-slate-700 text-slate-400 hover:text-white"
                   }`}
                 >
@@ -1302,7 +1498,7 @@ TP: ${trade.takeProfit1}`
                     <Sliders className={`w-3.5 h-3.5 ${theme.accentText}`} />
                     Engine Tuning & Sensitivity
                   </span>
-                  <button 
+                  <button
                     onClick={() => setShowTuningModal(false)}
                     className="text-slate-400 hover:text-white text-xs"
                   >
@@ -1316,9 +1512,9 @@ TP: ${trade.takeProfit1}`
                       <span>Sensitivity</span>
                       <span className="${theme.accentText} font-bold">{["Textbook", "Conservative", "Balanced", "Aggressive", "Ultra"][tuningConfig.sensitivity - 1]}</span>
                     </div>
-                    <input 
-                      type="range" min="1" max="5" 
-                      value={tuningConfig.sensitivity} 
+                    <input
+                      type="range" min="1" max="5"
+                      value={tuningConfig.sensitivity}
                       onChange={(e) => setTuningConfig({ ...tuningConfig, sensitivity: Number(e.target.value) })}
                       className="w-full accent-cyan-400"
                     />
@@ -1329,9 +1525,9 @@ TP: ${trade.takeProfit1}`
                       <span>Strictness</span>
                       <span className="${theme.accentText} font-bold">{["Lenient", "Relaxed", "Standard", "Strict", "Surgical"][tuningConfig.strictness - 1]}</span>
                     </div>
-                    <input 
-                      type="range" min="1" max="5" 
-                      value={tuningConfig.strictness} 
+                    <input
+                      type="range" min="1" max="5"
+                      value={tuningConfig.strictness}
                       onChange={(e) => setTuningConfig({ ...tuningConfig, strictness: Number(e.target.value) })}
                       className="w-full accent-cyan-400"
                     />
@@ -1342,9 +1538,9 @@ TP: ${trade.takeProfit1}`
                       <span>Min Confluences</span>
                       <span className="${theme.accentText} font-bold">{tuningConfig.minConfluences} Factors</span>
                     </div>
-                    <input 
-                      type="range" min="1" max="5" 
-                      value={tuningConfig.minConfluences} 
+                    <input
+                      type="range" min="1" max="5"
+                      value={tuningConfig.minConfluences}
                       onChange={(e) => setTuningConfig({ ...tuningConfig, minConfluences: Number(e.target.value) })}
                       className="w-full accent-cyan-400"
                     />
@@ -1355,9 +1551,9 @@ TP: ${trade.takeProfit1}`
                       <span>Min Risk:Reward</span>
                       <span className="${theme.accentText} font-bold">1:{tuningConfig.minRR}</span>
                     </div>
-                    <input 
-                      type="range" min="1" max="6" 
-                      value={tuningConfig.minRR} 
+                    <input
+                      type="range" min="1" max="6"
+                      value={tuningConfig.minRR}
                       onChange={(e) => setTuningConfig({ ...tuningConfig, minRR: Number(e.target.value) })}
                       className="w-full accent-cyan-400"
                     />
@@ -1400,17 +1596,17 @@ TP: ${trade.takeProfit1}`
             </div>
 
             {/* HIDDEN FILE INPUT */}
-            <input 
-              type="file" 
-              ref={chartFileInputRef} 
-              accept="image/*" 
-              className="hidden" 
-              onChange={handleChartImageUpload} 
+            <input
+              type="file"
+              ref={chartFileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleChartImageUpload}
             />
 
             {/* CHART UPLOAD / DROPZONE */}
             {!uploadedChartImg ? (
-              <div 
+              <div
                 onClick={() => chartFileInputRef.current?.click()}
                 className={`border-2 border-dashed ${theme.border} rounded-2xl p-6 flex flex-col items-center justify-center gap-2.5 bg-[#081525] cursor-pointer hover:border-cyan-400 transition text-center shadow-lg group`}
               >
@@ -1502,7 +1698,7 @@ TP: ${trade.takeProfit1}`
 
             {/* ANALYSIS RESULT HUD */}
             {/* METHODOLOGY SWITCHER */}
-            
+
 
             {/* ENHANCED ANALYSIS RESULT HUD */}
             {chartAnalysis && !isScanningChart && (
@@ -1534,6 +1730,30 @@ TP: ${trade.takeProfit1}`
                 </p>
               </div>
               <div className="w-10" />
+            </div>
+
+            {/* MT5 BROKER BRIDGE ACCESS */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex items-center justify-between shadow-lg`}>
+              <div className="flex flex-col gap-0.5 pr-2">
+                <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Link2 className={`w-4 h-4 ${theme.accentText}`} />
+                  MT5 Broker Connection
+                </span>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  {brokerConnected ? `Linked: ${selectedBroker} (#${mt5Login || "Active"}) • ${mt5Server}` : "XM, Headway, Razor, RCG, HFM, Deriv, JustMarkets, Vault"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen("connect")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition shrink-0 ${
+                  brokerConnected
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30"
+                    : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30"
+                }`}
+              >
+                {brokerConnected ? "Manage" : "Connect"}
+              </button>
             </div>
 
             {/* 1. AUTO-TRADE MASTER TOGGLE */}
@@ -1916,7 +2136,7 @@ TP: ${trade.takeProfit1}`
 
       {/* FREELY DRAGGABLE CIRCULAR FLOATING ICON */}
       {overlayEnabled && (
-        <aside 
+        <aside
           aria-label="Live bot floating status"
           style={{
             position: "fixed",
@@ -1969,10 +2189,10 @@ TP: ${trade.takeProfit1}`
             className={`relative w-14 h-14 rounded-full border-2 ${theme.cardBorder} bg-slate-900 shadow-[0_0_22px_rgba(6,182,212,0.6)] flex items-center justify-center p-0.5 active:scale-95 transition ${!isActive ? "grayscale" : ""}`}
           >
             <div className="w-full h-full rounded-full overflow-hidden pointer-events-none">
-              <img 
-                src="/images/bluescalp-bot.jpg" 
-                alt="Bot Icon" 
-                className="w-full h-full object-cover" 
+              <img
+                src="/images/bluescalp-bot.jpg"
+                alt="Bot Icon"
+                className="w-full h-full object-cover"
               />
             </div>
             <span className={`absolute top-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-[#030811] ${isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
@@ -2021,7 +2241,7 @@ TP: ${trade.takeProfit1}`
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => { setModalOpen(null); setActiveTab("home"); }}
               className={`w-full py-3 rounded-xl ${theme.buttonBg} font-bold text-xs`}
             >
@@ -2164,27 +2384,70 @@ TP: ${trade.takeProfit1}`
       {modalOpen === "connect" && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
           <div className={`w-full max-w-md bg-[#081525] border ${theme.cardBorder} rounded-3xl p-6 flex flex-col gap-4 shadow-2xl max-h-[90vh] overflow-y-auto`}>
-            
+
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div>
-                <h3 className={`text-lg font-bold ${theme.primaryText}`}>Connect Broker</h3>
-                <p className="text-xs text-slate-400">Live Execution Bridge</p>
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-300">
+                  <Link2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className={`text-lg font-bold ${theme.primaryText}`}>Connect Broker</h3>
+                  <p className="text-xs text-slate-400">MetaTrader 5 Live Execution Bridge</p>
+                </div>
               </div>
-              <button onClick={() => { setModalOpen(null); setActiveTab("home"); }} className="text-slate-400 hover:text-white">
+              <button
+                onClick={() => { setModalOpen(null); setActiveTab("home"); }}
+                className="text-slate-400 hover:text-white"
+                aria-label="Close broker modal"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Current Active Connection Status Card */}
+            {brokerConnected && (
+              <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <div>
+                    <p className="text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                      CONNECTED • {selectedBroker}
+                    </p>
+                    <p className="text-[11px] font-mono text-slate-300">
+                      Account: {mt5Login} • {mt5Server}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUnlinkBroker}
+                  className="px-2.5 py-1 rounded-lg bg-red-950/60 border border-red-500/40 text-red-300 text-[10px] font-bold uppercase tracking-wider hover:bg-red-900/60 active:scale-95 transition flex items-center gap-1"
+                >
+                  <Unlink className="w-3 h-3" />
+                  Unlink
+                </button>
+              </div>
+            )}
+
+            {/* 1. Broker Dropdown */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-300">Select Allowed Broker</label>
-              <select 
-                value={selectedBroker} 
+              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                <span>Select Allowed Broker</span>
+                <span className="text-[10px] text-cyan-400 font-mono font-normal">8 Supported Brokers</span>
+              </label>
+              <select
+                value={selectedBroker}
                 onChange={(e) => {
-                  setSelectedBroker(e.target.value);
-                  const b = ALLOWED_BROKERS.find(item => item.name === e.target.value);
-                  if (b) setMt5Server(b.servers[0]);
+                  const bName = e.target.value;
+                  setSelectedBroker(bName);
+                  const b = ALLOWED_BROKERS.find(item => item.name === bName);
+                  if (b && b.servers.length > 0) {
+                    setMt5Server(b.servers[0]);
+                    setIsCustomServer(false);
+                    setCustomServerInput("");
+                  }
                 }}
-                className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none"
+                className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400 font-medium"
               >
                 {ALLOWED_BROKERS.map(b => (
                   <option key={b.id} value={b.name}>{b.name}</option>
@@ -2192,42 +2455,113 @@ TP: ${trade.takeProfit1}`
               </select>
             </div>
 
+            {/* 2. MT5 Server Dropdown List */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-300">MT5 Server</label>
-              <input 
-                type="text" 
-                value={mt5Server}
-                onChange={(e) => setMt5Server(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none"
-              />
+              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Server className="w-3.5 h-3.5 text-cyan-400" />
+                  MT5 Server
+                </span>
+                <span className="text-[10px] text-slate-400">Server Cluster</span>
+              </label>
+              <select
+                value={isCustomServer ? "__custom__" : mt5Server}
+                onChange={(e) => {
+                  if (e.target.value === "__custom__") {
+                    setIsCustomServer(true);
+                  } else {
+                    setIsCustomServer(false);
+                    setMt5Server(e.target.value);
+                  }
+                }}
+                className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400 font-medium"
+              >
+                {ALLOWED_BROKERS.find(b => b.name === selectedBroker)?.servers.map(srv => (
+                  <option key={srv} value={srv}>{srv}</option>
+                ))}
+                <option value="__custom__">+ Custom Server Name...</option>
+              </select>
+
+              {isCustomServer && (
+                <input
+                  type="text"
+                  placeholder="e.g. Headway-Real 2 or RCGMarkets-Live3"
+                  value={customServerInput}
+                  onChange={(e) => setCustomServerInput(e.target.value)}
+                  className="bg-slate-950 border border-cyan-500/50 rounded-xl p-3 text-sm text-white focus:outline-none font-mono mt-1"
+                />
+              )}
             </div>
 
+            {/* 3. MT5 Trading Account Number */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-slate-300">MT5 Account Number</label>
-              <input 
-                type="number" 
+              <input
+                type="text"
+                inputMode="numeric"
                 placeholder="e.g. 52049102"
                 value={mt5Login}
                 onChange={(e) => setMt5Login(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none"
+                className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
               />
             </div>
 
-            <button 
-              onClick={() => {
-                setBrokerConnected(true);
-                setModalOpen(null);
-              }}
-              className={`w-full py-3.5 rounded-xl ${theme.buttonBg} font-bold text-sm tracking-wide shadow-md active:scale-95 transition`}
+            {/* 4. MT5 Trading Account Password */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-300">MT5 Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter MT5 account password"
+                  value={mt5Password}
+                  onChange={(e) => setMt5Password(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 pr-10 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Encrypted locally on your terminal. Used to link live execution bridge with your broker.
+              </p>
+            </div>
+
+            {/* Error Message */}
+            {brokerError && (
+              <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{brokerError}</span>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {brokerSuccess && (
+              <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{brokerSuccess}</span>
+              </div>
+            )}
+
+            {/* Save & Link Button */}
+            <button
+              type="button"
+              onClick={handleSaveBroker}
+              className={`w-full py-3.5 rounded-xl ${theme.buttonBg} font-bold text-sm tracking-wide shadow-md active:scale-95 transition flex items-center justify-center gap-2`}
             >
-              Save & Link Broker
+              <Link2 className="w-4 h-4" />
+              <span>{brokerConnected ? "Update & Re-Link Broker" : "Save & Link Broker"}</span>
             </button>
 
           </div>
         </div>
       )}
 
-      
+
 
     </div>
   );

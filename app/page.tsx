@@ -1808,7 +1808,7 @@ TP: ${trade.takeProfit1}`
                   Display Over Other Apps
                 </span>
                 <p className="text-[11px] text-slate-400 font-medium">
-                  Keep floating sniper radar visible when charting in MT5.
+                  Keep the floating bot controls visible while using the app.
                 </p>
               </div>
               <button
@@ -1915,7 +1915,7 @@ TP: ${trade.takeProfit1}`
       </div>
 
       {/* FREELY DRAGGABLE CIRCULAR FLOATING ICON */}
-      {isActive && overlayEnabled && (
+      {overlayEnabled && (
         <aside 
           aria-label="Live bot floating status"
           style={{
@@ -1930,45 +1930,43 @@ TP: ${trade.takeProfit1}`
           className="flex flex-col items-end cursor-grab active:cursor-grabbing"
         >
           {widgetExpanded && (
-            <div className={`w-72 mb-2 rounded-2xl border-2 ${theme.cardBorder} bg-[#071322]/95 backdrop-blur-xl p-3.5 ${theme.shadow} text-xs flex flex-col gap-2.5`}>
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/60">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span className={`font-black ${theme.primaryText} tracking-wider text-[11px]`}>BLUESCALP SIGNAL RADAR</span>
+            <div className="w-[min(20rem,calc(100vw-2rem))] mb-2 rounded-[28px] border border-white/20 bg-[#07100f]/95 backdrop-blur-xl p-4 shadow-[0_12px_48px_rgba(0,0,0,0.65),0_0_30px_rgba(6,182,212,0.28)] text-xs flex flex-col gap-2.5">
+              <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-cyan-200 shadow-[0_0_16px_rgba(6,182,212,0.55)] shrink-0">
+                  <img src="/images/bluescalp-bot.jpg" alt="BlueScalp Assassin EA" className="w-full h-full object-cover" />
                 </div>
-                <button onClick={() => setWidgetExpanded(false)} className="text-slate-400 hover:text-white">
+                <div className="min-w-0 flex-1">
+                  <p className="font-black text-white tracking-[0.14em] text-[11px]">BLUESCALP ASSASSIN EA</p>
+                  <p className={`flex items-center gap-1.5 font-semibold mt-0.5 ${isActive ? "text-emerald-300" : "text-slate-400"}`}>
+                    <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
+                    {isActive ? "Robot running" : "Robot stopped"}
+                  </p>
+                </div>
+                <button onClick={() => setWidgetExpanded(false)} className="text-slate-400 hover:text-white" aria-label="Close bot controls">
                   <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
 
-              {latestSignal ? (
-                <div className="bg-[#040a12] border border-slate-800 rounded-xl p-2.5 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className={`font-bold ${latestSignal.action === "BUY" ? "text-emerald-400" : "text-red-400"}`}>
-                      {latestSignal.symbol} • {latestSignal.action} BURST
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
-                      {latestSignal.status || "ACTIVE"}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-300 pt-1">
-                    <p><strong>Entry:</strong> {latestSignal.entry_price || "Market"}</p>
-                    <p><strong>Bullets:</strong> {latestSignal.bullets || 3} Fired</p>
-                    <p><strong>SL:</strong> {latestSignal.sl_price || "ATR Stop"}</p>
-                    <p><strong>TP:</strong> {latestSignal.tp_price || "+45 pts"}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-[#040a12] border border-slate-800 rounded-xl p-3 text-center text-[11px] text-slate-400">
-                  Monitoring London & NY Sessions... No live burst active.
-                </div>
-              )}
+              <div className="flex items-center justify-around py-3">
+                <button onClick={() => { setWidgetExpanded(false); setActiveTab("signals"); }} className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition">
+                  <TrendingUp className="w-7 h-7" />
+                  <span className="text-[10px] font-black tracking-[0.18em]">QUOTES</span>
+                </button>
+                <button onClick={() => setIsActive((active) => !active)} className={`w-16 h-16 rounded-full border-2 border-white/80 bg-slate-950 flex items-center justify-center active:scale-95 transition ${isActive ? "text-red-400 shadow-[0_0_18px_rgba(239,68,68,0.35)]" : "text-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.35)]"}`} aria-label={isActive ? "Stop bot" : "Start bot"}>
+                  {isActive ? <Square className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                </button>
+                <button onClick={() => { setWidgetExpanded(false); setOverlayEnabled(false); localStorage.setItem("bsa_overlay", "false"); }} className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition" aria-label="Hide floating bot widget">
+                  <X className="w-7 h-7" />
+                  <span className="text-[10px] font-black tracking-[0.18em]">REMOVE</span>
+                </button>
+              </div>
+              <p className="text-center text-slate-400 border-t border-white/10 pt-2">Monitoring signals</p>
             </div>
           )}
 
           <button
             onClick={handleIconClick}
-            className={`relative w-14 h-14 rounded-full border-2 ${theme.cardBorder} bg-slate-900 shadow-[0_0_22px_rgba(6,182,212,0.6)] flex items-center justify-center p-0.5 active:scale-95 transition`}
+            className={`relative w-14 h-14 rounded-full border-2 ${theme.cardBorder} bg-slate-900 shadow-[0_0_22px_rgba(6,182,212,0.6)] flex items-center justify-center p-0.5 active:scale-95 transition ${!isActive ? "grayscale" : ""}`}
           >
             <div className="w-full h-full rounded-full overflow-hidden pointer-events-none">
               <img 
@@ -1977,7 +1975,7 @@ TP: ${trade.takeProfit1}`
                 className="w-full h-full object-cover" 
               />
             </div>
-            <span className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#030811] animate-pulse" />
+            <span className={`absolute top-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-[#030811] ${isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
           </button>
         </aside>
       )}

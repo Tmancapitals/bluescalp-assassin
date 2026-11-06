@@ -130,7 +130,12 @@ export default function MobileConsole() {
 
   const [isActive, setIsActive] = useState(true);
   const [activeTab, setActiveTab] = useState<"home" | "signals" | "scanner" | "settings">("home");
-  const [modalOpen, setModalOpen] = useState<"connect" | "status" | null>(null);
+  const [modalOpen, setModalOpen] = useState<"connect" | "status" | "license" | null>(null);
+  const [newLicenseInput, setNewLicenseInput] = useState("");
+  const [newLicenseError, setNewLicenseError] = useState("");
+  const [newLicenseSuccess, setNewLicenseSuccess] = useState("");
+  const [isActivatingLicense, setIsActivatingLicense] = useState(false);
+  const [licenseCopied, setLicenseCopied] = useState(false);
 
   // Appearance & Customization Settings
   const [homeStyle, setHomeStyle] = useState<HomeStyle>("commander");
@@ -434,6 +439,44 @@ TP: ${trade.takeProfit1}`
   const handleUnlock = () => {
     if (!licenseInput.trim()) return;
     verifyKeyWithDatabase(licenseInput, false);
+  };
+
+  const handleActivateNewKey = async (keyToActivate: string) => {
+    const cleanKey = keyToActivate.trim().toUpperCase();
+    if (!cleanKey) {
+      setNewLicenseError("Please enter a valid license key.");
+      return;
+    }
+
+    setIsActivatingLicense(true);
+    setNewLicenseError("");
+    setNewLicenseSuccess("");
+
+    try {
+      const res = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: cleanKey }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.valid) {
+        localStorage.setItem("bsa_license", cleanKey);
+        localStorage.setItem("bluescalp_license_key", cleanKey);
+        setActiveKey(cleanKey);
+        setClientInfo({ clientName: data.clientName, expiresAt: data.expiresAt });
+        setIsUnlocked(true);
+        setNewLicenseSuccess(`License verified! Active for ${data.clientName}`);
+        setNewLicenseInput("");
+      } else {
+        setNewLicenseError(data.message || "Invalid or expired license key.");
+      }
+    } catch {
+      setNewLicenseError("Connection error verifying license key.");
+    } finally {
+      setIsActivatingLicense(false);
+    }
   };
 
   const handleLockOut = () => {
@@ -764,7 +807,14 @@ TP: ${trade.takeProfit1}`
               {activeTab === "scanner" && "AI Chart Scanner"}
               {activeTab === "settings" && "Terminal Settings"}
             </span>
-            <div className="w-16" />
+            <button
+              onClick={() => setModalOpen("license")}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-cyan-500/30 bg-cyan-950/60 text-cyan-300 text-[10px] font-bold active:scale-95 transition hover:bg-cyan-900/60"
+              title="License Details"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
+              <span>License</span>
+            </button>
           </header>
         )}
         
@@ -779,14 +829,24 @@ TP: ${trade.takeProfit1}`
                   BLUESCALP ASSASSIN
                 </span>
               </div>
-              <button
-                onClick={() => setActiveTab("settings")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/15 bg-slate-900/90 text-white shadow-lg active:scale-95 transition hover:bg-slate-800"
-                title="Settings & Layout Menu"
-              >
-                <Menu className="w-4 h-4 text-cyan-400" />
-                <span className="text-[11px] font-extrabold uppercase tracking-wider">Menu</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setModalOpen("license")}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-cyan-500/40 bg-cyan-950/70 text-cyan-300 shadow-md active:scale-95 transition hover:bg-cyan-900/70 text-[11px] font-bold"
+                  title="License Management"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>License</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("settings")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/15 bg-slate-900/90 text-white shadow-lg active:scale-95 transition hover:bg-slate-800"
+                  title="Settings & Layout Menu"
+                >
+                  <Menu className="w-4 h-4 text-cyan-400" />
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider">Menu</span>
+                </button>
+              </div>
             </div>
 
             {homeStyle === "commander" ? (
@@ -853,7 +913,7 @@ TP: ${trade.takeProfit1}`
 
                 {/* Powered By Tag */}
                 <div className="text-[11px] font-medium text-slate-400 py-0.5">
-                  Powered by <span className="${theme.accentText} font-bold">BLUESCALP ENGINE</span>
+                  Powered by <span className={`${theme.accentText} font-bold`}>BLUESCALP ENGINE</span>
                 </div>
 
                 {/* Stacked Cards */}
@@ -898,20 +958,25 @@ TP: ${trade.takeProfit1}`
                     </div>
                   </div>
 
-                  {/* Card 3: Add New EA */}
+                  {/* Card 3: License & Access Section */}
                   <div
-                    onClick={() => setModalOpen("connect")}
-                    className={`w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 active:scale-[0.99] transition cursor-pointer`}
+                    onClick={() => setModalOpen("license")}
+                    className={`w-full bg-[#06121f] border-2 ${theme.cardBorder} rounded-[22px] ${theme.shadow} p-4 flex items-center gap-3.5 active:scale-[0.99] transition cursor-pointer hover:border-cyan-400/50`}
                   >
                     <div className="w-12 h-12 rounded-full border border-cyan-400/60 flex items-center justify-center bg-cyan-950/60 text-cyan-300 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
-                      <Plus className="w-5 h-5" />
+                      <KeyRound className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-sm font-black text-white tracking-wide uppercase">
-                        ADD A NEW EA
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                          LICENSE & ACCESS
+                        </h3>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                          ACTIVE
+                        </span>
+                      </div>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                        HAVE A VALID LICENSE KEY
+                        ACTIVATE NEW KEY • VIEW STATUS
                       </p>
                     </div>
                   </div>
@@ -978,7 +1043,7 @@ TP: ${trade.takeProfit1}`
                     </div>
                     <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${theme.badgeBg} text-[11px] font-semibold`}>
                       <Zap className="w-3.5 h-3.5 fill-current" />
-                      POWERED BY PROEDGE EA
+                      POWERED BY BLUESCALP ENGINE
                     </div>
                   </div>
 
@@ -1035,7 +1100,7 @@ TP: ${trade.takeProfit1}`
                     BLUESCALP ASSASSIN V1.0
                   </h1>
                   <p className={`text-xs font-semibold ${theme.accentText} mt-0.5`}>
-                    by Tman Capitals • POWERED BY PROEDGE EA
+                    by Tman Capitals • POWERED BY BLUESCALP ENGINE
                   </p>
                 </div>
 
@@ -1112,12 +1177,6 @@ TP: ${trade.takeProfit1}`
                 <Layers className={`w-4 h-4 ${theme.accentText}`} />
                 Connected Bots
               </h2>
-              <button
-                onClick={() => setModalOpen("connect")}
-                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-900/60 active:scale-95 transition flex items-center gap-1"
-              >
-                + Add New Bot
-              </button>
             </div>
 
             {/* Stacked Cards matching reference UI */}
@@ -1162,20 +1221,25 @@ TP: ${trade.takeProfit1}`
                 </div>
               </div>
 
-              {/* Card 3: Add A New EA */}
+              {/* Card 3: License & Access Section */}
               <div
-                onClick={() => setModalOpen("connect")}
-                className="w-full bg-[#06121f] border border-cyan-500/30 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg active:scale-[0.99] transition cursor-pointer"
+                onClick={() => setModalOpen("license")}
+                className="w-full bg-[#06121f] border border-cyan-500/30 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg active:scale-[0.99] transition cursor-pointer hover:border-cyan-400/50"
               >
                 <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
-                  <Plus className="w-5 h-5" />
+                  <KeyRound className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-bold text-slate-100 tracking-wide uppercase">
-                    ADD A NEW EA
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-100 tracking-wide uppercase">
+                      LICENSE & ACCESS
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                      ACTIVE
+                    </span>
+                  </div>
                   <p className="text-[11px] text-slate-400">
-                    HAVE A VALID LICENSE KEY
+                    ACTIVATE NEW KEY • VIEW STATUS
                   </p>
                 </div>
               </div>
@@ -1761,25 +1825,69 @@ TP: ${trade.takeProfit1}`
               </button>
             </div>
 
-            {/* 10. LICENSE & SUPPORT */}
-            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-2 shadow-lg`}>
+            {/* 10. LICENSE & ACCESS SECTION */}
+            <div className={`bg-[#06121f] border-2 ${theme.border} rounded-2xl p-4 flex flex-col gap-3 shadow-lg`}>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                   <KeyRound className={`w-4 h-4 ${theme.accentText}`} />
-                  Terminal License
+                  Terminal License & Access
                 </span>
                 <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
                   ACTIVE
                 </span>
               </div>
-              <div className="text-xs text-slate-300 space-y-0.5">
-                <p><strong>License Key:</strong> <span className={`font-mono ${theme.accentText}`}>{activeKey}</span></p>
-                <p><strong>Assigned User:</strong> {clientInfo?.clientName || "Tman Capitals"}</p>
-                <p><strong>Expiry:</strong> {clientInfo?.expiresAt ? new Date(clientInfo.expiresAt).toLocaleDateString() : "Lifetime Verified"}</p>
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 space-y-1">
+                <p className="flex items-center justify-between">
+                  <span className="text-slate-400">License Key:</span>
+                  <span className={`font-mono font-bold ${theme.accentText}`}>{activeKey}</span>
+                </p>
+                <p className="flex items-center justify-between">
+                  <span className="text-slate-400">Assigned Client:</span>
+                  <span className="font-semibold text-slate-200">{clientInfo?.clientName || "Tman Capitals"}</span>
+                </p>
+                <p className="flex items-center justify-between">
+                  <span className="text-slate-400">Validity:</span>
+                  <span className="font-semibold text-slate-200">
+                    {clientInfo?.expiresAt ? new Date(clientInfo.expiresAt).toLocaleDateString() : "Lifetime Verified"}
+                  </span>
+                </p>
               </div>
+
+              {/* Enter / Activate New License Key Form */}
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2">
+                <label className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1">
+                  <KeyRound className="w-3 h-3 text-cyan-400" />
+                  Activate New License Key
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="ENTER LICENSE KEY"
+                    value={newLicenseInput}
+                    onChange={(e) => setNewLicenseInput(e.target.value.toUpperCase())}
+                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono uppercase tracking-wider focus:outline-none focus:border-cyan-400"
+                  />
+                  <button
+                    onClick={() => handleActivateNewKey(newLicenseInput)}
+                    disabled={isActivatingLicense || !newLicenseInput.trim()}
+                    className={`px-3 py-2 rounded-xl ${theme.buttonBg} font-black text-xs uppercase tracking-wider disabled:opacity-50`}
+                  >
+                    {isActivatingLicense ? "..." : "Activate"}
+                  </button>
+                </div>
+
+                {newLicenseError && (
+                  <p className="text-[11px] text-rose-300 font-semibold">{newLicenseError}</p>
+                )}
+                {newLicenseSuccess && (
+                  <p className="text-[11px] text-emerald-300 font-semibold">{newLicenseSuccess}</p>
+                )}
+              </div>
+
               <button
                 onClick={handleLockOut}
-                className="mt-2 py-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 font-black text-xs uppercase flex items-center justify-center gap-1.5 hover:bg-red-950/60 active:scale-95 transition"
+                className="py-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 font-black text-xs uppercase flex items-center justify-center gap-1.5 hover:bg-red-950/60 active:scale-95 transition"
               >
                 <LogOut className="w-4 h-4" />
                 Log Out / Switch License Key
@@ -1826,7 +1934,7 @@ TP: ${trade.takeProfit1}`
               <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/60">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span className={`font-black ${theme.primaryText} tracking-wider text-[11px]`}>PROEDGE SIGNAL RADAR</span>
+                  <span className={`font-black ${theme.primaryText} tracking-wider text-[11px]`}>BLUESCALP SIGNAL RADAR</span>
                 </div>
                 <button onClick={() => setWidgetExpanded(false)} className="text-slate-400 hover:text-white">
                   <ChevronDown className="w-4 h-4" />
@@ -1891,11 +1999,11 @@ TP: ${trade.takeProfit1}`
             <div className="grid grid-cols-2 gap-2.5 text-xs">
               <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
                 <p className="text-slate-400">Engine Mode</p>
-                <p className="text-sm font-bold text-emerald-400 mt-0.5">Machine Gunner V1.0</p>
+                <p className="text-sm font-bold text-emerald-400 mt-0.5">BlueScalp Assassin V1.0</p>
               </div>
               <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
                 <p className="text-slate-400">Firing Pattern</p>
-                <p className={`text-sm font-bold ${theme.accentText} mt-0.5`}>3 Bullets (500ms delay)</p>
+                <p className={`text-sm font-bold ${theme.accentText} mt-0.5`}>Single-Trade SMC Execution</p>
               </div>
               <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
                 <p className="text-slate-400">Session Timing</p>
@@ -1920,6 +2028,135 @@ TP: ${trade.takeProfit1}`
               className={`w-full py-3 rounded-xl ${theme.buttonBg} font-bold text-xs`}
             >
               Close Status
+            </button>
+          </div>
+        </div>
+      )}
+
+            {/* LICENSE MANAGEMENT MODAL */}
+      {modalOpen === "license" && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
+          <div className={`w-full max-w-md bg-[#081525] border ${theme.cardBorder} rounded-3xl p-6 flex flex-col gap-4 shadow-2xl max-h-[90vh] overflow-y-auto`}>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div>
+                <h3 className={`text-lg font-bold ${theme.primaryText} flex items-center gap-2`}>
+                  <KeyRound className="w-5 h-5 text-cyan-400" />
+                  Terminal License
+                </h3>
+                <p className="text-xs text-slate-400">BlueScalp Assassin Engine Access</p>
+              </div>
+              <button onClick={() => setModalOpen(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Current Active License Status */}
+            <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Current License</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                  ACTIVE & VERIFIED
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 font-mono text-xs">
+                <span className={`font-bold ${theme.accentText}`}>{activeKey || "NO ACTIVE KEY"}</span>
+                {activeKey && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(activeKey);
+                      setLicenseCopied(true);
+                      setTimeout(() => setLicenseCopied(false), 2000);
+                    }}
+                    className="text-[10px] px-2 py-1 rounded bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95 transition"
+                  >
+                    {licenseCopied ? "COPIED" : "COPY"}
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 pt-1">
+                <div>
+                  <span className="block text-slate-500 text-[10px]">OWNER / CLIENT</span>
+                  <span className="font-semibold text-slate-200">{clientInfo?.clientName || "Tman Capitals"}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-500 text-[10px]">VALIDITY / EXPIRY</span>
+                  <span className="font-semibold text-slate-200">
+                    {clientInfo?.expiresAt ? new Date(clientInfo.expiresAt).toLocaleDateString() : "Lifetime Access"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Activate New License Key Form */}
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
+                  Activate New License Key
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Switch or enter a newly purchased license key to upgrade your terminal permissions.
+              </p>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter license key"
+                  value={newLicenseInput}
+                  onChange={(e) => setNewLicenseInput(e.target.value.toUpperCase())}
+                  className="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white font-mono uppercase tracking-widest focus:outline-none focus:border-cyan-400"
+                />
+
+                {newLicenseError && (
+                  <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{newLicenseError}</span>
+                  </div>
+                )}
+
+                {newLicenseSuccess && (
+                  <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{newLicenseSuccess}</span>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => handleActivateNewKey(newLicenseInput)}
+                  disabled={isActivatingLicense || !newLicenseInput.trim()}
+                  className={`w-full py-3 rounded-xl ${theme.buttonBg} font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition disabled:opacity-50`}
+                >
+                  {isActivatingLicense ? "Verifying Key..." : "Activate New Key"}
+                </button>
+              </div>
+            </div>
+
+            {/* Need a New License (WhatsApp Direct) */}
+            <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between text-xs">
+              <div>
+                <p className="font-black text-emerald-300 uppercase tracking-wide">Need A New License?</p>
+                <p className="text-[11px] text-slate-300">R200 for 3 months • R600 Lifetime</p>
+              </div>
+              <a
+                href="https://wa.me/27649291083?text=Hi%20Thabang,%20I%20want%20to%20buy%20a%20license%20key%20for%20BlueScalp%20Assassin"
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 rounded-xl bg-emerald-400 text-slate-950 font-black text-xs uppercase active:scale-95 transition shadow-md shrink-0"
+              >
+                Get Key
+              </a>
+            </div>
+
+            {/* Switch / Logout */}
+            <button
+              onClick={() => {
+                setModalOpen(null);
+                handleLockOut();
+              }}
+              className="py-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 font-bold text-xs uppercase flex items-center justify-center gap-1.5 hover:bg-red-950/60 active:scale-95 transition"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Log Out of License
             </button>
           </div>
         </div>

@@ -3,10 +3,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "BLUESCALP ASSASSIN V1.0 - Automated Forex & Indices Trading Robot",
-  description: "High-precision automated trading robot powered by PROEDGE EA by Tman Capitals. 5-Timeframe Machine Gunner scalping continuation and liquidity sweep reversal with up to 94% accuracy.",
+  description: "High-precision automated trading robot powered by BLUESCALP ENGINE by Tman Capitals. 5-Timeframe Machine Gunner scalping continuation and liquidity sweep reversal with up to 94% accuracy.",
   keywords: [
     "BlueScalp Assassin",
-    "PROEDGE EA",
+    "BLUESCALP ENGINE",
     "Tman Capitals",
     "MT5 Trading Bot",
     "Forex Robot South Africa",
@@ -86,7 +86,7 @@ export default function RootLayout({
               "name": "BlueScalp Assassin V1.0",
               "operatingSystem": "Android, Web, Windows",
               "applicationCategory": "FinanceApplication",
-              "description": "High-precision automated trading robot powered by PROEDGE EA by Tman Capitals. 5-Timeframe Machine Gunner scalping continuation and liquidity sweep reversal.",
+              "description": "High-precision automated trading robot powered by BLUESCALP ENGINE by Tman Capitals. 5-Timeframe Machine Gunner scalping continuation and liquidity sweep reversal.",
               "offers": {
                 "@type": "AggregateOffer",
                 "priceCurrency": "ZAR",

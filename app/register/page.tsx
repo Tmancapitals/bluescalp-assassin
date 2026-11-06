@@ -67,7 +67,7 @@ export default function RegisterPage() {
             BLUESCALP <span className="text-cyan-400">ASSASSIN V1.0</span>
           </h1>
           <p className="text-xs text-slate-400">
-            Powered by PROEDGE EA • Tman Capitals
+            Powered by BLUESCALP ENGINE • Tman Capitals
           </p>
         </div>
 

@@ -279,7 +279,7 @@ export default function UnifiedPortal() {
               BLUESCALP <span className="text-cyan-400">ASSASSIN V1.0</span>
             </h1>
             <p className="text-[10px] text-slate-400 font-semibold">
-              POWERED BY PROEDGE EA • TMAN CAPITALS
+              POWERED BY BLUESCALP ENGINE • TMAN CAPITALS
             </p>
           </div>
         </div>

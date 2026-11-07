@@ -56,7 +56,8 @@ import {
   Unlink,
   Eye,
   EyeOff,
-  Server
+  Server,
+  Search
 } from "lucide-react";
 
 const ALLOWED_BROKERS = [
@@ -100,6 +101,48 @@ const ALLOWED_BROKERS = [
     name: "Vault Markets",
     servers: ["VaultMarkets-Live", "VaultMarkets-Live2", "VaultMarkets-Demo"],
   },
+];
+
+
+const BROKER_SYMBOLS: Record<string, string[]> = {
+  headway: [
+    ".UK100.mic", "EURNZD", "AUDCHF.mic", "GBPCAD.mic", "USDJPY.mic", "USDJPY",
+    "USDHKD.mic", "EURUSD.mic", "USDPLN", "GBPZAR", "NZDUSD.mic", "CHFJPY.mic",
+    "XAUUSD.mic", "US30.mic", "NAS100.mic", "GER40.mic", "BTCUSD.mic"
+  ],
+  xm: [
+    "EURUSDmicro", "USDJPYmicro", "GBPUSDmicro", "GOLDmicro", "US30Cash", "US100Cash",
+    "EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "US30", "US100", "GER40Cash"
+  ],
+  deriv: [
+    "VOL_10", "VOL_20", "VOL_25", "VOL_50", "VOL_75", "VOL_80", "VOL_100",
+    "Boom 1000", "Crash 1000", "Step Index", "Jump 10", "Jump 75", "XAUUSD", "EURUSD"
+  ],
+  justmarkets: [
+    "EURUSD_c", "GBPUSD_c", "USDJPY_c", "XAUUSD_c", "EURUSD", "GBPUSD", "USDJPY",
+    "XAUUSD", "NAS100", "US30", "GER30", "BTCUSD"
+  ],
+  razormarkets: [
+    "EURUSD", "GBPUSD", "USDJPY", "USDZAR", "GBPZAR", "EURZAR", "XAUUSD",
+    "NAS100", "US30", "GER40", "BTCUSD"
+  ],
+  rcg: [
+    "EURUSD", "GBPUSD", "USDJPY", "USDZAR", "GBPZAR", "EURZAR", "XAUUSD",
+    "NAS100", "US30", "GER40", "UK100"
+  ],
+  hfm: [
+    "EURUSD", "GBPUSD", "USDJPY", "USDZAR", "GBPZAR", "XAUUSD",
+    "US30", "NAS100", "UK100", "BTCUSD"
+  ],
+  vaultmarket: [
+    "EURUSD", "GBPUSD", "USDJPY", "USDZAR", "GBPZAR", "XAUUSD",
+    "US30", "NAS100", "GER40"
+  ],
+};
+
+const DEFAULT_TRADE_SYMBOLS: string[] = [
+  ".UK100.mic", "AUDCHF.mic", "GBPCAD.mic", "USDJPY.mic",
+  "USDHKD.mic", "EURUSD.mic", "NZDUSD.mic", "CHFJPY.mic"
 ];
 
 type HomeStyle = "classic" | "premium" | "commander";
@@ -169,9 +212,15 @@ export default function MobileConsole() {
   const [authError, setAuthError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const [isActive, setIsActive] = useState(true);
+  // Quick Trade Setup state
+  const [selectedTradeSymbols, setSelectedTradeSymbols] = useState<string[]>(DEFAULT_TRADE_SYMBOLS);
+  const [tradeLotSize, setTradeLotSize] = useState<string>("0.01");
+  const [tradeCount, setTradeCount] = useState<string>("1");
+  const [symbolSearchQuery, setSymbolSearchQuery] = useState<string>("");
+
+  const [isActive, setIsActive] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"home" | "signals" | "scanner" | "settings">("home");
-  const [modalOpen, setModalOpen] = useState<"connect" | "status" | "license" | null>(null);
+  const [modalOpen, setModalOpen] = useState<"connect" | "status" | "license" | "trade" | null>(null);
   const [newLicenseInput, setNewLicenseInput] = useState("");
   const [newLicenseError, setNewLicenseError] = useState("");
   const [newLicenseSuccess, setNewLicenseSuccess] = useState("");
@@ -406,8 +455,24 @@ TP: ${trade.takeProfit1}`
     const savedVideo = localStorage.getItem("bsa_video_bg");
     if (savedVideo !== null) setVideoBgEnabled(savedVideo === "true");
 
+    const savedTradeActive = localStorage.getItem("bsa_trade_active");
+    if (savedTradeActive === "true") setIsActive(true);
+    else if (savedTradeActive === "false") setIsActive(false);
+
     const savedBrokerConnected = localStorage.getItem("bsa_broker_connected");
     if (savedBrokerConnected === "true") setBrokerConnected(true);
+
+    const savedTradeSymbols = localStorage.getItem("bsa_trade_symbols");
+    if (savedTradeSymbols) {
+      try {
+        const parsed = JSON.parse(savedTradeSymbols);
+        if (Array.isArray(parsed) && parsed.length > 0) setSelectedTradeSymbols(parsed);
+      } catch {}
+    }
+    const savedLot = localStorage.getItem("bsa_trade_lot");
+    if (savedLot) setTradeLotSize(savedLot);
+    const savedCount = localStorage.getItem("bsa_trade_count");
+    if (savedCount) setTradeCount(savedCount);
 
     const savedBroker = localStorage.getItem("bsa_mt5_broker");
     if (savedBroker) {
@@ -442,6 +507,36 @@ TP: ${trade.takeProfit1}`
     const interval = setInterval(fetchSignals, 10000);
     return () => clearInterval(interval);
   }, [isUnlocked, activeKey]);
+
+  const handleConfirmAndTrade = () => {
+    setIsActive(true);
+    localStorage.setItem("bsa_trade_active", "true");
+    localStorage.setItem("bsa_trade_symbols", JSON.stringify(selectedTradeSymbols));
+    localStorage.setItem("bsa_trade_lot", tradeLotSize || "0.01");
+    localStorage.setItem("bsa_trade_count", tradeCount || "1");
+    setModalOpen(null);
+  };
+
+  const handleStopTrade = () => {
+    setIsActive(false);
+    localStorage.setItem("bsa_trade_active", "false");
+    setSelectedTradeSymbols([]);
+    localStorage.setItem("bsa_trade_symbols", JSON.stringify([]));
+    setModalOpen(null);
+  };
+
+  const toggleTradeSymbol = (sym: string) => {
+    setSelectedTradeSymbols((prev) =>
+      prev.includes(sym) ? prev.filter((s) => s !== sym) : [...prev, sym]
+    );
+  };
+
+  const currentBrokerKey =
+    ALLOWED_BROKERS.find((b) => b.name.toLowerCase() === selectedBroker.toLowerCase())?.id || "headway";
+  const brokerAvailableSymbols = BROKER_SYMBOLS[currentBrokerKey] || BROKER_SYMBOLS.headway;
+  const filteredSymbols = brokerAvailableSymbols.filter((s: string) =>
+    s.toLowerCase().includes(symbolSearchQuery.toLowerCase())
+  );
 
   const handleSaveBroker = () => {
     if (!mt5Login.trim()) {
@@ -1027,7 +1122,15 @@ TP: ${trade.takeProfit1}`
 
                   {/* Center Glowing Play / Pause (Trade) */}
                   <button
-                    onClick={() => setIsActive(!isActive)}
+                    type="button"
+                    onClick={() => {
+                      if (isActive) {
+                        setIsActive(false);
+                        localStorage.setItem("bsa_trade_active", "false");
+                      } else {
+                        setModalOpen("trade");
+                      }
+                    }}
                     className="flex flex-col items-center gap-1 group"
                   >
                     <div className={`w-14 h-14 rounded-full border-2 ${theme.cardBorder} bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center ${theme.shadow} active:scale-95 transition`}>
@@ -1216,7 +1319,7 @@ TP: ${trade.takeProfit1}`
                   {/* Info bar with MONITORING instead of listening */}
                   <div className="flex items-center justify-between rounded-xl bg-slate-950/60 border border-slate-800 px-3.5 py-2 text-xs backdrop-blur-md mt-1">
                     <span className="text-slate-200 font-semibold">The Assassin</span>
-                    <span className="text-slate-300 font-medium">8 Pairs Active</span>
+                    <button type="button" onClick={() => setModalOpen("trade")} className="text-cyan-300 font-semibold hover:underline flex items-center gap-1 cursor-pointer">{selectedTradeSymbols.length} Pairs Active</button>
                     <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/50 text-emerald-300 font-bold text-[11px]">
                       <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
                       {brokerConnected ? "Live" : "Monitoring"}
@@ -1271,7 +1374,7 @@ TP: ${trade.takeProfit1}`
                 </div>
 
                 <div className="w-full flex items-center justify-between rounded-xl bg-slate-950/70 border border-slate-800 px-3.5 py-2 text-xs">
-                  <span className="text-slate-300 font-medium">8 Pairs Active</span>
+                  <button type="button" onClick={() => setModalOpen("trade")} className="text-cyan-300 font-semibold hover:underline flex items-center gap-1 cursor-pointer">{selectedTradeSymbols.length} Pairs Active</button>
                   <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/50 text-emerald-300 font-bold text-[11px]">
                     <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
                     {brokerConnected ? "Live" : "Monitoring"}
@@ -1280,9 +1383,17 @@ TP: ${trade.takeProfit1}`
               </div>
             )}
 
-            {/* SINGLE PRIMARY ENGINE TOGGLE */}
+            {/* SINGLE PRIMARY TRADE TOGGLE */}
             <button
-              onClick={() => setIsActive(!isActive)}
+              type="button"
+              onClick={() => {
+                if (isActive) {
+                  setIsActive(false);
+                  localStorage.setItem("bsa_trade_active", "false");
+                } else {
+                  setModalOpen("trade");
+                }
+              }}
               className={`w-full py-4 rounded-2xl border-2 font-black tracking-widest text-sm uppercase flex items-center justify-center gap-2.5 transition active:scale-[0.98] ${
                 isActive
                   ? "bg-[#061424] border-cyan-400 text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.3)]"
@@ -1292,12 +1403,12 @@ TP: ${trade.takeProfit1}`
               {isActive ? (
                 <>
                   <Pause className="w-4 h-4 fill-cyan-300" />
-                  PAUSE ENGINE
+                  PAUSE TRADE
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-emerald-300" />
-                  START ENGINE
+                  TRADE
                 </>
               )}
             </button>
@@ -2135,7 +2246,7 @@ TP: ${trade.takeProfit1}`
       </div>
 
       {/* FLOATING BOT WIDGET & EXPANDED CONTROL CARD */}
-      {overlayEnabled && (
+      {overlayEnabled && isActive && (
         <>
           {widgetExpanded && (
             <div
@@ -2197,7 +2308,16 @@ TP: ${trade.takeProfit1}`
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsActive((active) => !active)}
+                  onClick={() => {
+                    if (isActive) {
+                      setIsActive(false);
+                      setWidgetExpanded(false);
+                      localStorage.setItem("bsa_trade_active", "false");
+                    } else {
+                      setIsActive(true);
+                      localStorage.setItem("bsa_trade_active", "true");
+                    }
+                  }}
                   className={`w-16 h-16 rounded-full border-2 border-white/80 bg-slate-950 flex items-center justify-center active:scale-95 transition ${
                     isActive ? "text-red-400 shadow-[0_0_18px_rgba(239,68,68,0.35)]" : "text-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.35)]"
                   }`}
@@ -2250,6 +2370,153 @@ TP: ${trade.takeProfit1}`
             </aside>
           )}
         </>
+      )}
+
+
+      {/* QUICK TRADE SETUP MODAL */}
+      {modalOpen === "trade" && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#05111e]/95 border-2 border-cyan-500/50 rounded-[32px] p-6 flex flex-col gap-3.5 shadow-[0_0_40px_rgba(6,182,212,0.35)] max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-cyan-400 fill-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                <h3 className="text-base font-black tracking-wider text-cyan-400 uppercase">
+                  QUICK TRADE SETUP
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-full transition"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Instruction description */}
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Pick the symbols you want the bot to trade for your connected broker. Each one trades independently using the lot and trade count below.
+            </p>
+
+            {/* Connected broker indicator */}
+            <div className="flex items-center justify-between text-[11px] px-1 pt-0.5">
+              <span className="text-slate-400">
+                Broker: <strong className="text-cyan-400 font-bold">{selectedBroker}</strong>
+              </span>
+              <span className="text-cyan-300 font-mono font-semibold">
+                {selectedTradeSymbols.length} Selected
+              </span>
+            </div>
+
+            {/* Search symbols input */}
+            <div className="relative mt-0.5">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={symbolSearchQuery}
+                onChange={(e) => setSymbolSearchQuery(e.target.value)}
+                placeholder="Search symbols"
+                className="w-full bg-[#081729] border border-cyan-500/30 rounded-xl py-3 pl-10 pr-9 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition font-medium"
+              />
+              {symbolSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSymbolSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Symbols Badges / Pills Grid */}
+            <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto py-1 pr-1 custom-scrollbar">
+              {filteredSymbols.map((sym: string) => {
+                const isSelected = selectedTradeSymbols.includes(sym);
+                return (
+                  <button
+                    key={sym}
+                    type="button"
+                    onClick={() => toggleTradeSymbol(sym)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition active:scale-95 ${
+                      isSelected
+                        ? "border-2 border-cyan-400 bg-cyan-950/70 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.4)]"
+                        : "border border-slate-700/80 bg-slate-900/80 text-slate-300 hover:border-slate-500"
+                    }`}
+                  >
+                    {sym} {isSelected && "✓"}
+                  </button>
+                );
+              })}
+              {filteredSymbols.length === 0 && symbolSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const custom = symbolSearchQuery.toUpperCase().trim();
+                    if (custom && !selectedTradeSymbols.includes(custom)) {
+                      setSelectedTradeSymbols((prev) => [...prev, custom]);
+                      setSymbolSearchQuery("");
+                    }
+                  }}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold border-2 border-dashed border-cyan-400/60 bg-cyan-950/40 text-cyan-300 hover:bg-cyan-900/50"
+                >
+                  + Add &quot;{symbolSearchQuery.toUpperCase()}&quot;
+                </button>
+              )}
+            </div>
+
+            {/* Sizing & Execution inputs */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                  Lot Size
+                </label>
+                <input
+                  type="text"
+                  value={tradeLotSize}
+                  onChange={(e) => setTradeLotSize(e.target.value)}
+                  placeholder="0.01"
+                  className="w-full bg-[#081729] border border-cyan-500/30 rounded-xl py-2.5 px-3.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                  Trades per Symbol
+                </label>
+                <input
+                  type="text"
+                  value={tradeCount}
+                  onChange={(e) => setTradeCount(e.target.value)}
+                  placeholder="1"
+                  className="w-full bg-[#081729] border border-cyan-500/30 rounded-xl py-2.5 px-3.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+            </div>
+
+            {/* Confirm & Trade Button */}
+            <button
+              type="button"
+              onClick={handleConfirmAndTrade}
+              className="w-full mt-2 py-4 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black tracking-widest text-sm uppercase shadow-[0_0_25px_rgba(6,182,212,0.45)] active:scale-[0.98] transition flex items-center justify-center gap-2"
+            >
+              CONFIRM &amp; TRADE
+            </button>
+
+            {/* Stop Trades button (if active) */}
+            {isActive && (
+              <button
+                type="button"
+                onClick={handleStopTrade}
+                className="w-full py-2.5 rounded-xl border border-rose-500/40 bg-rose-950/30 text-rose-300 font-bold text-xs uppercase tracking-wider hover:bg-rose-900/40 transition flex items-center justify-center gap-1.5"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+                Stop Trading &amp; Clear Selection
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* STATUS MODAL (Shows bot signals details) */}

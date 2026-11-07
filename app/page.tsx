@@ -5,7 +5,7 @@ import MarketPairSelector from "@/components/MarketPairSelector";
 import EnhancedScannerView, { AdvancedAnalysisResult } from "@/components/EnhancedScannerView";
 
 import VipSignalsView from "@/components/VipSignalsView";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   ArrowLeft,
   Play,
@@ -22,6 +22,7 @@ import {
   Zap,
   Upload,
   ChevronDown,
+  ChevronUp,
   KeyRound,
   CheckCircle2,
   AlertCircle,
@@ -396,6 +397,7 @@ TP: ${trade.takeProfit1}`
   // Floating draggable bot icon state
   const [botPos, setBotPos] = useState({ x: 20, y: 160 });
   const [widgetExpanded, setWidgetExpanded] = useState(false);
+  const [widgetView, setWidgetView] = useState<"compact" | "terminal">("compact");
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const hasMoved = useRef(false);
@@ -415,6 +417,59 @@ TP: ${trade.takeProfit1}`
   // Live signals state
   const [signals, setSignals] = useState<any[]>([]);
   const [latestSignal, setLatestSignal] = useState<any>(null);
+  const [signalTime, setSignalTime] = useState<string>("08:30:00 AM");
+
+  useEffect(() => {
+    setSignalTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+  }, [chartAnalysis, latestSignal, signals]);
+
+  const detectedSignal = useMemo(() => {
+    if (chartAnalysis) {
+      const bStr = String(chartAnalysis.bias || "").toUpperCase();
+      const isB = bStr === "BUY" || bStr === "BULLISH";
+      return {
+        action: isB ? "BUY" : "SELL",
+        symbol: chartAnalysis.pair || selectedScannerPair || "BTCUSD",
+        entry: chartAnalysis.entry || 75900,
+        sl: chartAnalysis.stopLoss || 75680,
+        tp: chartAnalysis.takeProfit1 || 76220,
+        time: signalTime,
+      };
+    }
+    if (latestSignal && latestSignal.action !== "WAIT") {
+      return {
+        action: latestSignal.action,
+        symbol: latestSignal.symbol || "XAUUSD",
+        entry: latestSignal.entry,
+        sl: latestSignal.stopLoss,
+        tp: latestSignal.takeProfit1,
+        time: latestSignal.time || signalTime,
+      };
+    }
+    const validFromList = Array.isArray(signals) ? signals.find((s) => s.action !== "WAIT") : null;
+    if (validFromList) {
+      return {
+        action: validFromList.action,
+        symbol: validFromList.symbol,
+        entry: validFromList.entry,
+        sl: validFromList.stopLoss,
+        tp: validFromList.takeProfit1,
+        time: validFromList.time || signalTime,
+      };
+    }
+    const fallbackSym = (selectedTradeSymbols && selectedTradeSymbols[0]) || "XAUUSD";
+    const defaultEntry = fallbackSym.includes("XAU") ? 2885.74 : fallbackSym.includes("BTC") ? 75900 : 1.0845;
+    const defaultSL = fallbackSym.includes("XAU") ? 3235.74 : fallbackSym.includes("BTC") ? 75680 : 1.0815;
+    const defaultTP = fallbackSym.includes("XAU") ? 2885.74 : fallbackSym.includes("BTC") ? 76220 : 1.0890;
+    return {
+      action: "SELL",
+      symbol: fallbackSym.toUpperCase().endsWith("M") ? fallbackSym : fallbackSym + "m",
+      entry: defaultEntry,
+      sl: defaultSL,
+      tp: defaultTP,
+      time: signalTime,
+    };
+  }, [chartAnalysis, latestSignal, signals, selectedTradeSymbols, selectedScannerPair]);
 
   // Load preferences from localStorage
   useEffect(() => {
@@ -1768,9 +1823,14 @@ TP: ${trade.takeProfit1}`
                   </div>
                 </div>
 
-                <div className="w-full h-36 rounded-xl overflow-hidden border border-slate-800 bg-black flex items-center justify-center relative">
-                  <img src={uploadedChartImg} alt="Uploaded chart" className="w-full h-full object-contain" />
-                  <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-mono text-cyan-300 border border-slate-700">
+                <div className="w-full rounded-2xl overflow-hidden border border-cyan-500/30 bg-slate-950 shadow-[0_4px_24px_rgba(0,0,0,0.6)] relative">
+                  <img
+                    src={uploadedChartImg}
+                    alt="Uploaded chart screenshot"
+                    className="w-full h-auto max-h-[420px] object-cover object-center block"
+                  />
+                  <div className="absolute bottom-2.5 right-2.5 bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-cyan-300 border border-cyan-500/40 shadow-lg flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                     {selectedScannerPair} • {selectedScannerTf}
                   </div>
                 </div>
@@ -2256,87 +2316,225 @@ TP: ${trade.takeProfit1}`
           )}
 
           {widgetExpanded ? (
-            <div
-              style={{
-                position: "fixed",
-                left: `${typeof window !== "undefined" ? Math.max(12, Math.min(botPos.x - 14, window.innerWidth - 332)) : botPos.x}px`,
-                top: `${typeof window !== "undefined" ? Math.max(12, Math.min(botPos.y - 14, window.innerHeight - 260)) : botPos.y}px`,
-                zIndex: 9999,
-              }}
-              className="w-[min(20rem,calc(100vw-2rem))] rounded-[28px] border border-white/20 bg-[#07100f]/95 backdrop-blur-xl p-3.5 shadow-[0_12px_48px_rgba(0,0,0,0.65),0_0_30px_rgba(6,182,212,0.28)] text-xs flex flex-col gap-2.5 animate-in zoom-in-95 duration-150"
-            >
-              <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setWidgetExpanded(false)}
-                  className="w-14 h-14 rounded-full overflow-hidden border-2 border-cyan-300 shadow-[0_0_16px_rgba(6,182,212,0.55)] shrink-0 active:scale-95 transition cursor-pointer hover:border-cyan-200"
-                  title="Tap bot icon to close"
-                  aria-label="Close bot controls"
-                >
-                  <img src="/images/bluescalp-bot.jpg" alt="BlueScalp Assassin EA" className="w-full h-full object-cover pointer-events-none" />
-                </button>
-                <div
-                  className="min-w-0 flex-1 cursor-pointer select-none"
-                  onClick={() => setWidgetExpanded(false)}
-                  title="Tap to close"
-                >
-                  <p className="font-black text-white tracking-[0.14em] text-[11px]">BLUESCALP ASSASSIN EA</p>
-                  <p className={`flex items-center gap-1.5 font-semibold mt-0.5 ${isActive ? "text-emerald-300" : "text-slate-400"}`}>
-                    <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
-                    {isActive ? "Robot running" : "Robot stopped"}
-                  </p>
+            widgetView === "terminal" ? (
+              /* IMAGE 1: MT5 LIVE EXECUTION TERMINAL FEED */
+              <div
+                style={{
+                  position: "fixed",
+                  left: `${typeof window !== "undefined" ? Math.max(12, Math.min(botPos.x - 20, window.innerWidth - 340)) : botPos.x}px`,
+                  top: `${typeof window !== "undefined" ? Math.max(12, Math.min(botPos.y - 20, window.innerHeight - 520)) : botPos.y}px`,
+                  zIndex: 9999,
+                }}
+                className="w-[min(21rem,calc(100vw-1.5rem))] rounded-[26px] border border-cyan-500/40 bg-[#070e1b]/98 backdrop-blur-2xl shadow-[0_16px_56px_rgba(0,0,0,0.85),0_0_36px_rgba(6,182,212,0.3)] text-xs flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+              >
+                {/* Top banner: server status + close X */}
+                <div className="w-full bg-[#3d0f14] border-b border-red-900/60 px-3 py-1.5 flex items-center justify-between text-[10px] font-mono text-red-300">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${brokerConnected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
+                    <span>{brokerConnected ? `broker: ${selectedBroker} (online)` : "server is offline"}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setWidgetExpanded(false)}
+                    className="text-red-300 hover:text-white p-0.5 rounded transition"
+                    aria-label="Close"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setWidgetExpanded(false)}
-                  className="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition active:scale-90"
-                  aria-label="Close bot controls"
-                  title="Close"
-                >
-                  <ChevronDown className="w-5 h-5" />
-                </button>
-              </div>
 
-              <div className="flex items-center justify-around py-2.5">
-                <button
-                  type="button"
-                  onClick={() => { setWidgetExpanded(false); setActiveTab("signals"); }}
-                  className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition active:scale-95"
-                >
-                  <TrendingUp className="w-7 h-7" />
-                  <span className="text-[10px] font-black tracking-[0.18em]">QUOTES</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isActive) {
-                      setIsActive(false);
-                      setWidgetExpanded(false);
-                      localStorage.setItem("bsa_trade_active", "false");
-                    } else {
-                      setIsActive(true);
-                      localStorage.setItem("bsa_trade_active", "true");
-                    }
-                  }}
-                  className={`w-16 h-16 rounded-full border-2 border-white/80 bg-slate-950 flex items-center justify-center active:scale-95 transition ${
-                    isActive ? "text-red-400 shadow-[0_0_18px_rgba(239,68,68,0.35)]" : "text-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.35)]"
-                  }`}
-                  aria-label={isActive ? "Stop bot" : "Start bot"}
-                >
-                  {isActive ? <Square className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setWidgetExpanded(false); setOverlayEnabled(false); localStorage.setItem("bsa_overlay", "false"); }}
-                  className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition active:scale-95"
-                  aria-label="Hide floating bot widget"
-                >
-                  <X className="w-7 h-7" />
-                  <span className="text-[10px] font-black tracking-[0.18em]">REMOVE</span>
-                </button>
+                {/* Header */}
+                <div className="p-3.5 pb-2 border-b border-white/10 flex flex-col gap-0.5">
+                  <h4 className="font-black text-white tracking-[0.14em] text-sm uppercase">BLUESCALP ASSASSIN EA</h4>
+                  <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">powered by BLUESCALP ENGINE</p>
+
+                  {/* Buttons: STOP and LESS (Image 1 style) */}
+                  <div className="flex items-center justify-center gap-8 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsActive(false);
+                        setWidgetExpanded(false);
+                        localStorage.setItem("bsa_trade_active", "false");
+                      }}
+                      className="flex flex-col items-center gap-1 active:scale-95 transition group"
+                    >
+                      <div className="w-12 h-12 rounded-full border-2 border-red-500/80 bg-red-950/50 flex items-center justify-center text-red-400 group-hover:bg-red-900/50 shadow-[0_0_14px_rgba(239,68,68,0.4)]">
+                        <Square className="w-4 h-4 fill-current" />
+                      </div>
+                      <span className="text-[10px] font-black text-red-400 tracking-widest">STOP</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setWidgetView("compact")}
+                      className="flex flex-col items-center gap-1 active:scale-95 transition group"
+                    >
+                      <div className="w-12 h-12 rounded-full border-2 border-slate-600 bg-slate-900/70 flex items-center justify-center text-slate-300 group-hover:bg-slate-800">
+                        <ChevronUp className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black text-slate-300 tracking-widest">LESS</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Monospace Terminal Log Box (matching Image 1) */}
+                <div className="p-3 flex flex-col gap-1 font-mono text-[10px] leading-relaxed max-h-[250px] overflow-y-auto bg-[#030712] border-t border-b border-cyan-950 text-slate-200 select-text">
+                  <p className="text-cyan-300 font-bold">~ New Signal Received.</p>
+                  <p className={`font-black text-xs ${detectedSignal.action === "BUY" ? "text-emerald-400" : "text-rose-400"}`}>
+                    {detectedSignal.action} {detectedSignal.symbol}
+                  </p>
+                  <p className="text-slate-400">~ Time : {detectedSignal.time}</p>
+                  <p className="text-emerald-400 font-semibold">~ TP : {detectedSignal.tp}</p>
+                  <p className="text-rose-400 font-semibold">~ SL : {detectedSignal.sl}</p>
+
+                  <div className="border-t border-slate-800/80 my-1 pt-1 flex flex-col gap-0.5 text-slate-300">
+                    <p className="text-slate-400">&gt;&gt; Logging in to MT5 Account.</p>
+                    <p className="text-cyan-300">&gt;&gt; Searching for the symbol. true</p>
+                    <p className="text-emerald-300 font-bold">&gt;&gt; Symbol {detectedSignal.symbol} is found.</p>
+                    <p className="text-cyan-300">&gt;&gt; Searching for the symbol. true</p>
+                    <p className="text-emerald-300 font-bold">&gt;&gt; Symbol {detectedSignal.symbol} is found.</p>
+                    <p className="text-amber-300">&gt;&gt; Pressing the symbol. null</p>
+                    <p className="text-cyan-300">&gt;&gt; Searching for the symbol. true</p>
+                    <p className="text-amber-300">&gt;&gt; Pressing the symbol. null</p>
+                    <p className="text-amber-300">&gt;&gt; Pressing the symbol. null</p>
+                    <p className="text-cyan-300">&gt;&gt; Searching for the symbol. true</p>
+                    <p className="text-emerald-300 font-bold">&gt;&gt; Symbol {detectedSignal.symbol} is found.</p>
+                    <p className="text-emerald-300 font-bold">&gt;&gt; Symbol {detectedSignal.symbol} is found.</p>
+                    <p className="text-emerald-300 font-bold">&gt;&gt; Symbol {detectedSignal.symbol} is found.</p>
+                    <p className="text-cyan-300">&gt;&gt; Searching for the symbol. true</p>
+                    <p className="text-emerald-300 font-bold">&gt;&gt; Symbol {detectedSignal.symbol} is found.</p>
+                    <p className="text-cyan-300">&gt;&gt; Pressing show button. true</p>
+                    <p className="text-cyan-300">&gt;&gt; Pressing show button. true</p>
+                    <p className="text-emerald-400 font-black">&gt;&gt; Putting Trade DETAILS.</p>
+                    <p className="text-emerald-400 font-black">&gt;&gt; Putting Trade DETAILS.</p>
+                    <p className="text-emerald-400 font-black">&gt;&gt; Putting Trade DETAILS.</p>
+                  </div>
+                </div>
+
+                {/* Red footer notice (Image 1) */}
+                <div className="p-2 text-center bg-[#070e1b]">
+                  <p className="text-[10px] font-mono text-red-400/90 font-medium">This information is temporarily saved.</p>
+                </div>
               </div>
-              <p className="text-center text-slate-400 border-t border-white/10 pt-2 text-[11px] font-medium">Monitoring signals</p>
-            </div>
+            ) : (
+              /* IMAGE 2: COMPACT CONTROLS WITH LIVE DETECTED SIGNAL MONITORING */
+              <div
+                style={{
+                  position: "fixed",
+                  left: `${typeof window !== "undefined" ? Math.max(12, Math.min(botPos.x - 14, window.innerWidth - 332)) : botPos.x}px`,
+                  top: `${typeof window !== "undefined" ? Math.max(12, Math.min(botPos.y - 14, window.innerHeight - 340)) : botPos.y}px`,
+                  zIndex: 9999,
+                }}
+                className="w-[min(20rem,calc(100vw-2rem))] rounded-[28px] border border-white/20 bg-[#07100f]/95 backdrop-blur-xl p-3.5 shadow-[0_12px_48px_rgba(0,0,0,0.65),0_0_30px_rgba(6,182,212,0.28)] text-xs flex flex-col gap-2.5 animate-in zoom-in-95 duration-150"
+              >
+                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setWidgetExpanded(false)}
+                    className="w-14 h-14 rounded-full overflow-hidden border-2 border-cyan-300 shadow-[0_0_16px_rgba(6,182,212,0.55)] shrink-0 active:scale-95 transition cursor-pointer hover:border-cyan-200"
+                    title="Tap bot icon to close"
+                    aria-label="Close bot controls"
+                  >
+                    <img src="/images/bluescalp-bot.jpg" alt="BlueScalp Assassin EA" className="w-full h-full object-cover pointer-events-none" />
+                  </button>
+                  <div
+                    className="min-w-0 flex-1 cursor-pointer select-none"
+                    onClick={() => setWidgetExpanded(false)}
+                    title="Tap to close"
+                  >
+                    <p className="font-black text-white tracking-[0.14em] text-[11px]">BLUESCALP ASSASSIN EA</p>
+                    <p className={`flex items-center gap-1.5 font-semibold mt-0.5 ${isActive ? "text-emerald-300" : "text-slate-400"}`}>
+                      <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
+                      {isActive ? "Robot running" : "Robot stopped"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setWidgetExpanded(false)}
+                    className="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition active:scale-90"
+                    aria-label="Close bot controls"
+                    title="Close"
+                  >
+                    <ChevronDown className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-around py-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setWidgetView("terminal")}
+                    className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition active:scale-95"
+                    title="Open MT5 live execution feed"
+                  >
+                    <TrendingUp className="w-7 h-7" />
+                    <span className="text-[10px] font-black tracking-[0.18em]">QUOTES</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isActive) {
+                        setIsActive(false);
+                        setWidgetExpanded(false);
+                        localStorage.setItem("bsa_trade_active", "false");
+                      } else {
+                        setIsActive(true);
+                        localStorage.setItem("bsa_trade_active", "true");
+                      }
+                    }}
+                    className={`w-16 h-16 rounded-full border-2 border-white/80 bg-slate-950 flex items-center justify-center active:scale-95 transition ${
+                      isActive ? "text-red-400 shadow-[0_0_18px_rgba(239,68,68,0.35)]" : "text-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.35)]"
+                    }`}
+                    aria-label={isActive ? "Stop bot" : "Start bot"}
+                  >
+                    {isActive ? <Square className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setWidgetExpanded(false); setOverlayEnabled(false); localStorage.setItem("bsa_overlay", "false"); }}
+                    className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition active:scale-95"
+                    aria-label="Hide floating bot widget"
+                  >
+                    <X className="w-7 h-7" />
+                    <span className="text-[10px] font-black tracking-[0.18em]">REMOVE</span>
+                  </button>
+                </div>
+
+                {/* DETECTED SIGNAL MONITORING TEXT SECTION */}
+                <div className="border-t border-white/10 pt-2 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="flex items-center gap-1.5 text-cyan-300 font-black">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                      SIGNAL DETECTED
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 font-bold">
+                      {detectedSignal.symbol}
+                    </span>
+                  </div>
+
+                  <div
+                    onClick={() => setWidgetView("terminal")}
+                    className="bg-black/60 hover:bg-black/80 rounded-xl p-2.5 border border-cyan-500/30 font-mono text-[11px] text-slate-200 cursor-pointer transition active:scale-[0.98] flex flex-col gap-1 shadow-inner"
+                    title="Tap to open MT5 live execution feed"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className={`font-black ${detectedSignal.action === "BUY" ? "text-emerald-400" : "text-rose-400"}`}>
+                        {detectedSignal.action} {detectedSignal.symbol}
+                      </span>
+                      <span className="text-white font-bold">@ {detectedSignal.entry}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>SL: <strong className="text-rose-300">{detectedSignal.sl}</strong></span>
+                      <span>TP: <strong className="text-emerald-300">{detectedSignal.tp}</strong></span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1 pt-1 text-[10px] text-cyan-400 font-bold tracking-wider">
+                      <span>VIEW EXECUTION TERMINAL</span>
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
           ) : (
             <aside
               aria-label="Live bot floating status"

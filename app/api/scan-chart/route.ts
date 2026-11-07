@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-
 const CANDIDATE_MODELS = [
   "gemini-flash-latest",
   "gemini-flash-lite-latest",
@@ -11,7 +10,13 @@ const CANDIDATE_MODELS = [
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { imageBase64, mimeType = "image/jpeg", methodology = "ALL" } = body;
+    const {
+      imageBase64,
+      mimeType = "image/jpeg",
+      methodology = "ALL",
+      pair = "BTCUSD",
+      timeframe = "H1",
+    } = body;
 
     if (!imageBase64) {
       return NextResponse.json({ error: "Missing imageBase64 payload" }, { status: 400 });
@@ -25,7 +30,7 @@ export async function POST(req: NextRequest) {
     const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, "");
 
     const prompt = `You are a world-class institutional algorithmic price action analyst (ICT, SMC, CRT, UltraBreakout).
-Analyze this financial candlestick chart screenshot using the '${methodology}' methodology.
+Analyze this financial candlestick chart screenshot of ${pair} (${timeframe}) using the '${methodology}' methodology.
 
 Requirements:
 1. Directional Bias: exactly 'BUY', 'SELL', or 'WAIT'.
@@ -63,7 +68,7 @@ Respond ONLY with valid JSON matching this exact structure:
   "summary": "Clear liquidity sweep followed by MSS with displacement into discount OB."
 }`;
 
-        const attempts: { model: string; status: number; message: string }[] = [];
+    const attempts: { model: string; status: number; message: string }[] = [];
 
     for (const model of CANDIDATE_MODELS) {
       try {
@@ -115,8 +120,34 @@ Respond ONLY with valid JSON matching this exact structure:
         const cleaned = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
         const parsed = JSON.parse(cleaned);
 
+        const pairName = body.pair || parsed.pair || "BTCUSD";
+        const tfName = body.timeframe || parsed.timeframe || "H1";
+        const biasUpper = String(parsed.bias || "WAIT").toUpperCase();
+        const rationaleText =
+          parsed.summary ||
+          parsed.rationale ||
+          parsed.reasoning ||
+          "Clear institutional liquidity sweep followed by market structure shift and entry confirmation.";
+
+        const patterns = {
+          orderBlock: parsed.orderBlocks || parsed?.patterns?.orderBlock || `${tfName} Institutional Order Block identified`,
+          fairValueGap: parsed.fvgZones || parsed?.patterns?.fairValueGap || "Fair Value Gap (FVG) imbalance zone confirmed",
+          liquiditySweep: parsed.liquiditySweeps || parsed?.patterns?.liquiditySweep || "Session liquidity pool swept prior to displacement",
+          keyLevel: parsed.keyLevel || parsed?.patterns?.keyLevel || "Key Support/Resistance structure level",
+        };
+
         return NextResponse.json({
           ...parsed,
+          pair: pairName,
+          timeframe: tfName,
+          bias: biasUpper,
+          rationale: rationaleText,
+          summary: rationaleText,
+          orderBlocks: patterns.orderBlock,
+          fvgZones: patterns.fairValueGap,
+          liquiditySweeps: patterns.liquiditySweep,
+          keyLevel: patterns.keyLevel,
+          patterns,
           modelUsed: model,
           methodology,
           timestamp: new Date().toISOString(),

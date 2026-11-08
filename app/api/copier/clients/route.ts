@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabase
       .from("copier_clients")
-      .select("account_number, broker_server, broker_password, lot_size, is_active, updated_at")
+      .select("account_number, broker_server, broker_password, lot_size, is_active")
       .eq("is_active", true);
 
     if (error) {

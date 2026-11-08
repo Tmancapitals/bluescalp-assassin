@@ -30,7 +30,6 @@ export async function POST(request: Request) {
           lot_size: parseFloat(lotSize) || 0.01,
           is_active: Boolean(isActive),
           license_key: String(licenseKey),
-          updated_at: new Date().toISOString(),
         },
         { onConflict: "account_number" }
       )

@@ -20,26 +20,41 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data, error } = await supabase
-      .from("copier_clients")
-      .upsert(
-        {
-          account_number: String(accountNumber),
-          broker_server: String(brokerServer),
-          broker_password: String(brokerPassword || ""),
-          lot_size: parseFloat(lotSize) || 0.01,
-          is_active: Boolean(isActive),
-          license_key: String(licenseKey),
-        },
-        { onConflict: "account_number" }
-      )
-      .select();
+    const payload = {
+      account_number: String(accountNumber),
+      broker_server: String(brokerServer),
+      broker_password: String(brokerPassword || ""),
+      lot_size: parseFloat(lotSize) || 0.01,
+      is_active: Boolean(isActive),
+      license_key: String(licenseKey),
+    };
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    // Check if account already exists
+    const { data: existing } = await supabase
+      .from("copier_clients")
+      .select("id")
+      .eq("account_number", String(accountNumber))
+      .maybeSingle();
+
+    let result;
+    if (existing && existing.id) {
+      result = await supabase
+        .from("copier_clients")
+        .update(payload)
+        .eq("account_number", String(accountNumber))
+        .select();
+    } else {
+      result = await supabase
+        .from("copier_clients")
+        .insert(payload)
+        .select();
     }
 
-    return NextResponse.json({ success: true, client: data });
+    if (result.error) {
+      return NextResponse.json({ error: result.error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, client: result.data });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || "Server error" }, { status: 500 });
   }

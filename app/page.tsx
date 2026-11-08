@@ -563,7 +563,36 @@ TP: ${trade.takeProfit1}`
     return () => clearInterval(interval);
   }, [isUnlocked, activeKey]);
 
+  const syncCopierStatus = async (isActive: boolean) => {
+    try {
+      const savedServer = localStorage.getItem("bsa_mt5_server") || "";
+      const savedAccount = localStorage.getItem("bsa_mt5_login") || "";
+      const savedPassword = localStorage.getItem("bsa_mt5_password") || "";
+      const savedLot = localStorage.getItem("bsa_trade_lot") || "0.01";
+      const savedLicense = localStorage.getItem("bsa_license_key") || "BSA-CLIENT";
+
+      if (!savedAccount || !savedServer) return;
+
+      await fetch("/api/copier/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          licenseKey: savedLicense,
+          accountNumber: savedAccount,
+          brokerServer: savedServer,
+          brokerPassword: savedPassword,
+          lotSize: savedLot,
+          isActive,
+        }),
+      });
+      console.log("Copier sync status:", isActive);
+    } catch (err) {
+      console.error("Copier sync error:", err);
+    }
+  };
+
   const handleConfirmAndTrade = () => {
+    syncCopierStatus(true);
     setIsActive(true);
     localStorage.setItem("bsa_trade_active", "true");
     localStorage.setItem("bsa_trade_symbols", JSON.stringify(selectedTradeSymbols));
@@ -573,6 +602,7 @@ TP: ${trade.takeProfit1}`
   };
 
   const handleStopTrade = () => {
+    syncCopierStatus(false);
     setIsActive(false);
     localStorage.setItem("bsa_trade_active", "false");
     setSelectedTradeSymbols([]);

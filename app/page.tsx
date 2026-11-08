@@ -1210,6 +1210,7 @@ TP: ${trade.takeProfit1}`
                     type="button"
                     onClick={() => {
                       if (isActive) {
+                        syncCopierStatus(false);
                         setIsActive(false);
                         localStorage.setItem("bsa_trade_active", "false");
                       } else {
@@ -1473,6 +1474,7 @@ TP: ${trade.takeProfit1}`
               type="button"
               onClick={() => {
                 if (isActive) {
+                  syncCopierStatus(false);
                   setIsActive(false);
                   localStorage.setItem("bsa_trade_active", "false");
                 } else {
@@ -2383,6 +2385,7 @@ TP: ${trade.takeProfit1}`
                     <button
                       type="button"
                       onClick={() => {
+                        syncCopierStatus(false);
                         setIsActive(false);
                         setWidgetExpanded(false);
                         localStorage.setItem("bsa_trade_active", "false");
@@ -2504,10 +2507,12 @@ TP: ${trade.takeProfit1}`
                     type="button"
                     onClick={() => {
                       if (isActive) {
+                        syncCopierStatus(false);
                         setIsActive(false);
                         setWidgetExpanded(false);
                         localStorage.setItem("bsa_trade_active", "false");
                       } else {
+                        syncCopierStatus(true);
                         setIsActive(true);
                         localStorage.setItem("bsa_trade_active", "true");
                       }
